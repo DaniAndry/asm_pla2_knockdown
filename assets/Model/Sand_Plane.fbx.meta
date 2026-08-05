@@ -1,0 +1,78 @@
+{
+  "ver": "2.3.14",
+  "importer": "fbx",
+  "imported": true,
+  "uuid": "9e4a10f3-00da-4744-a407-9ad1dd380639",
+  "files": [],
+  "subMetas": {
+    "08c68": {
+      "importer": "gltf-mesh",
+      "uuid": "9e4a10f3-00da-4744-a407-9ad1dd380639@08c68",
+      "displayName": "",
+      "id": "08c68",
+      "name": "Plane.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 200
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "de26a": {
+      "importer": "gltf-scene",
+      "uuid": "9e4a10f3-00da-4744-a407-9ad1dd380639@de26a",
+      "displayName": "",
+      "id": "de26a",
+      "name": "Sand_Plane.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "fbx": {
+      "smartMaterialEnabled": true
+    },
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "9e4a10f3-00da-4744-a407-9ad1dd380639@08c68"
+      ],
+      "skeletons": [],
+      "textures": [],
+      "materials": [],
+      "scenes": [
+        "9e4a10f3-00da-4744-a407-9ad1dd380639@de26a"
+      ]
+    }
+  }
+}

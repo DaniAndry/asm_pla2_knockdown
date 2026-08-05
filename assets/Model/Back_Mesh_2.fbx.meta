@@ -1,0 +1,146 @@
+{
+  "ver": "2.3.14",
+  "importer": "fbx",
+  "imported": true,
+  "uuid": "0b437852-9627-4006-963e-bd541f780092",
+  "files": [],
+  "subMetas": {
+    "36bd0": {
+      "importer": "gltf-mesh",
+      "uuid": "0b437852-9627-4006-963e-bd541f780092@36bd0",
+      "displayName": "",
+      "id": "36bd0",
+      "name": "Plane_2.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 720
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "ad881": {
+      "importer": "gltf-embeded-image",
+      "uuid": "0b437852-9627-4006-963e-bd541f780092@ad881",
+      "displayName": "",
+      "id": "ad881",
+      "name": "ASM_Gameplay_background_NEW.png.image",
+      "userData": {
+        "gltfIndex": 0,
+        "fixAlphaTransparencyArtifacts": true,
+        "hasAlpha": true,
+        "type": "texture"
+      },
+      "ver": "1.0.3",
+      "imported": true,
+      "files": [
+        ".json",
+        ".png"
+      ],
+      "subMetas": {}
+    },
+    "ba7c5": {
+      "importer": "texture",
+      "uuid": "0b437852-9627-4006-963e-bd541f780092@ba7c5",
+      "displayName": "",
+      "id": "ba7c5",
+      "name": "ASM_Gameplay_background_NEW.png.texture",
+      "userData": {
+        "wrapModeS": "repeat",
+        "wrapModeT": "repeat",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "none",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "0b437852-9627-4006-963e-bd541f780092@ad881"
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "5e342": {
+      "importer": "gltf-material",
+      "uuid": "0b437852-9627-4006-963e-bd541f780092@5e342",
+      "displayName": "",
+      "id": "5e342",
+      "name": "Mat.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "1e4a0": {
+      "importer": "gltf-scene",
+      "uuid": "0b437852-9627-4006-963e-bd541f780092@1e4a0",
+      "displayName": "",
+      "id": "1e4a0",
+      "name": "Back_Mesh_2.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [
+      {
+        "name": "ASM_Gameplay_background_NEW.png",
+        "uri": "0b437852-9627-4006-963e-bd541f780092@ad881"
+      }
+    ],
+    "fbx": {
+      "smartMaterialEnabled": true
+    },
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "0b437852-9627-4006-963e-bd541f780092@36bd0"
+      ],
+      "skeletons": [],
+      "textures": [
+        "0b437852-9627-4006-963e-bd541f780092@ba7c5"
+      ],
+      "materials": [
+        "0b437852-9627-4006-963e-bd541f780092@5e342"
+      ],
+      "scenes": [
+        "0b437852-9627-4006-963e-bd541f780092@1e4a0"
+      ]
+    }
+  }
+}

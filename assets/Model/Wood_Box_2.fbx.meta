@@ -1,0 +1,146 @@
+{
+  "ver": "2.3.14",
+  "importer": "fbx",
+  "imported": true,
+  "uuid": "188c7b41-11bb-4997-9dcc-a1d0bec2a55c",
+  "files": [],
+  "subMetas": {
+    "90c94": {
+      "importer": "gltf-mesh",
+      "uuid": "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@90c94",
+      "displayName": "",
+      "id": "90c94",
+      "name": "mdl_Median_Box_1x1_01_1_5_5_4.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 2368
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "dc97f": {
+      "importer": "gltf-embeded-image",
+      "uuid": "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@dc97f",
+      "displayName": "",
+      "id": "dc97f",
+      "name": "Wood_Box.png.image",
+      "userData": {
+        "gltfIndex": 0,
+        "fixAlphaTransparencyArtifacts": true,
+        "hasAlpha": true,
+        "type": "texture"
+      },
+      "ver": "1.0.3",
+      "imported": true,
+      "files": [
+        ".json",
+        ".png"
+      ],
+      "subMetas": {}
+    },
+    "f3147": {
+      "importer": "texture",
+      "uuid": "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@f3147",
+      "displayName": "",
+      "id": "f3147",
+      "name": "Wood_Box.png.texture",
+      "userData": {
+        "wrapModeS": "repeat",
+        "wrapModeT": "repeat",
+        "minfilter": "linear",
+        "magfilter": "linear",
+        "mipfilter": "none",
+        "anisotropy": 0,
+        "isUuid": true,
+        "imageUuidOrDatabaseUri": "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@dc97f"
+      },
+      "ver": "1.0.22",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "96fca": {
+      "importer": "gltf-material",
+      "uuid": "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@96fca",
+      "displayName": "",
+      "id": "96fca",
+      "name": "Wood_Mat.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "258ff": {
+      "importer": "gltf-scene",
+      "uuid": "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@258ff",
+      "displayName": "",
+      "id": "258ff",
+      "name": "Wood_Box_2.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [
+      {
+        "name": "Wood_Box.png",
+        "uri": "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@dc97f"
+      }
+    ],
+    "fbx": {
+      "smartMaterialEnabled": true
+    },
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@90c94"
+      ],
+      "skeletons": [],
+      "textures": [
+        "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@f3147"
+      ],
+      "materials": [
+        "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@96fca"
+      ],
+      "scenes": [
+        "188c7b41-11bb-4997-9dcc-a1d0bec2a55c@258ff"
+      ]
+    }
+  }
+}

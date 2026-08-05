@@ -1,0 +1,66 @@
+CCEffect %{
+  techniques:
+  - name: shadow-catcher
+    passes:
+    - vert: shadow-catcher-vs
+      frag: shadow-catcher-fs
+      phase: forward
+      properties:
+        shadowOpacity:
+          value: 0.65
+      depthStencilState:
+        depthTest: true
+        depthWrite: false
+      blendState:
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+}%
+
+CCProgram shadow-catcher-vs %{
+  precision highp float;
+
+  #include <cc-global>
+  #include <cc-local>
+
+  in vec3 a_position;
+
+  void main () {
+    gl_Position =
+      cc_matProj *
+      cc_matView *
+      cc_matWorld *
+      vec4(a_position, 1.0);
+  }
+}%
+
+CCProgram shadow-catcher-fs %{
+  precision highp float;
+
+  uniform Constant {
+    float shadowOpacity;
+  };
+
+  layout(location = 0) out vec4 fragColor;
+
+  void main () {
+
+    /*
+      Shadow receiver output.
+
+      This pass is intentionally transparent.
+      The shadow factor should be connected
+      through Cocos forward shadow chunks.
+    */
+
+    float shadow = shadowOpacity;
+
+    fragColor = vec4(
+      0.0,
+      0.0,
+      0.0,
+      shadow
+    );
+  }
+}%
