@@ -1,0 +1,185 @@
+// Transparent directional-light shadow catcher for Cocos Creator 3.8.7.
+// The receiver surface is invisible outside the shadow.
+// The shadow map is sampled directly, without the PBR lighting-result path.
+
+CCEffect %{
+  techniques:
+  - name: transparent
+    passes:
+    - vert: shadow-catcher-vs
+      frag: shadow-catcher-fs
+      embeddedMacros:
+        CC_FORCE_FORWARD_SHADING: true
+      rasterizerState: &rasterizerState
+        cullMode: none
+      depthStencilState: &depthStencilState
+        depthTest: true
+        depthWrite: false
+      blendState: &blendState
+        targets:
+        - blend: true
+          blendSrc: src_alpha
+          blendDst: one_minus_src_alpha
+          blendSrcAlpha: one
+          blendDstAlpha: one_minus_src_alpha
+      properties: &properties
+        shadowColor:
+          value: [0.0, 0.0, 0.0, 1.0]
+          linear: true
+          editor:
+            displayName: Shadow Color
+            type: color
+        shadowOpacity:
+          value: 0.7
+          target: catcherParams.x
+          editor:
+            displayName: Shadow Opacity
+            slide: true
+            range: [0.0, 1.0]
+            step: 0.001
+        shadowContrast:
+          value: 1.0
+          target: catcherParams.y
+          editor:
+            displayName: Shadow Contrast
+            slide: true
+            range: [0.1, 4.0]
+            step: 0.01
+        debugReceiverOpacity:
+          value: 0.0
+          target: catcherParams.z
+          editor:
+            displayName: Debug Receiver Opacity
+            slide: true
+            range: [0.0, 1.0]
+            step: 0.001
+        shadowThreshold:
+          value: 0.001
+          target: catcherParams.w
+          editor:
+            displayName: Shadow Threshold
+            slide: true
+            range: [0.0, 0.2]
+            step: 0.001
+
+    - vert: shadow-catcher-vs
+      frag: shadow-catcher-fs
+      phase: deferred-forward
+      propertyIndex: 0
+      embeddedMacros:
+        CC_PIPELINE_TYPE: 0
+        CC_FORCE_FORWARD_SHADING: true
+      rasterizerState: *rasterizerState
+      depthStencilState: *depthStencilState
+      blendState: *blendState
+}%
+
+CCProgram shadow-catcher-properties %{
+  uniform Constants {
+    vec4 shadowColor;
+    vec4 catcherParams;
+  };
+}%
+
+CCProgram shadow-catcher-vs %{
+  precision highp float;
+
+  #include <surfaces/effect-macros/common-macros>
+  #include <surfaces/includes/common-vs>
+  #include <shadow-catcher-properties>
+  #include <surfaces/includes/standard-vs>
+  #include <shading-entries/main-functions/render-to-scene/vs>
+}%
+
+CCProgram shadow-catcher-fs %{
+  precision highp float;
+
+  #include <surfaces/effect-macros/common-macros>
+  #include <surfaces/includes/common-fs>
+  #include <shadow-catcher-properties>
+
+  layout(location = 0) out vec4 fragColorX;
+
+  float GetDirectionalShadowVisibility()
+  {
+    float visibility = 1.0;
+
+  #if CC_RECEIVE_SHADOW && CC_SHADOW_TYPE == CC_SHADOW_MAP
+    if (cc_mainLitDir.w > 0.0) {
+      vec3 worldPos = FSInput_worldPos;
+      vec3 worldNormal = normalize(FSInput_worldNormal);
+      vec3 directionToLight = normalize(-cc_mainLitDir.xyz);
+
+      // Make the catcher independent from the mesh winding direction.
+      if (dot(worldNormal, directionToLight) < 0.0) {
+        worldNormal = -worldNormal;
+      }
+
+      vec2 shadowBias = FSInput_shadowBias;
+
+    #if CC_DIR_LIGHT_SHADOW_TYPE == CC_DIR_LIGHT_SHADOW_CASCADED
+      visibility = CCCSMFactorBase(
+        worldPos,
+        worldNormal,
+        shadowBias
+      );
+    #elif CC_DIR_LIGHT_SHADOW_TYPE == CC_DIR_LIGHT_SHADOW_UNIFORM
+      vec4 shadowPos = cc_matLightViewProj * vec4(worldPos, 1.0);
+      vec4 shadowPosWithDepthBias = vec4(0.0);
+
+      visibility = CCShadowFactorBase(
+        shadowPosWithDepthBias,
+        shadowPos,
+        worldNormal,
+        shadowBias
+      );
+    #endif
+    }
+  #endif
+
+    return saturate(visibility);
+  }
+
+  void main()
+  {
+    float visibility = GetDirectionalShadowVisibility();
+    float shadowAmount = saturate(1.0 - visibility);
+
+    shadowAmount = max(
+      shadowAmount - saturate(catcherParams.w),
+      0.0
+    );
+
+    shadowAmount = pow(
+      shadowAmount,
+      max(catcherParams.y, 0.0001)
+    );
+
+    float shadowAlpha =
+      shadowAmount *
+      saturate(catcherParams.x) *
+      saturate(shadowColor.a);
+
+    float debugAlpha = saturate(catcherParams.z);
+    float outputAlpha = max(shadowAlpha, debugAlpha);
+
+    if (outputAlpha <= 0.0001) {
+      discard;
+    }
+
+    vec3 outputColor = mix(
+      shadowColor.rgb,
+      vec3(0.5),
+      step(shadowAlpha, debugAlpha)
+    );
+
+    vec4 color = vec4(outputColor, outputAlpha);
+
+  #if !CC_USE_FLOAT_OUTPUT || CC_IS_TRANSPARENCY_PASS
+    color.rgb = HDRToLDR(color.rgb);
+    color.rgb = LinearToSRGB(color.rgb);
+  #endif
+
+    fragColorX = color;
+  }
+}%
