@@ -94,10 +94,14 @@
         "__id__": 286
       }
     ],
-    "_active": true,
-    "_components": [],
+    "_active": false,
+    "_components": [
+      {
+        "__id__": 302
+      }
+    ],
     "_prefab": {
-      "__id__": 302
+      "__id__": 304
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -298,15 +302,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -335,6 +339,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -529,15 +537,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -566,6 +574,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -760,15 +772,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -797,6 +809,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -991,15 +1007,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -1028,6 +1044,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -1222,15 +1242,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -1259,6 +1279,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -1453,15 +1477,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -1490,6 +1514,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -1684,15 +1712,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -1721,6 +1749,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -1915,15 +1947,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -1952,6 +1984,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -2146,15 +2182,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -2183,6 +2219,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -2377,15 +2417,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -2414,6 +2454,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -2608,15 +2652,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -2645,6 +2689,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -2839,15 +2887,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -2876,6 +2924,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -3070,15 +3122,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -3107,6 +3159,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -3301,15 +3357,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -3338,6 +3394,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -3532,15 +3592,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -3569,6 +3629,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -3763,15 +3827,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -3800,6 +3864,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -3994,15 +4062,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -4031,6 +4099,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -4225,15 +4297,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -4262,6 +4334,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -4456,15 +4532,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -4493,6 +4569,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -4687,15 +4767,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -4724,6 +4804,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "0bf6e798-9104-4599-880e-224a70f5ccfd",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -5043,15 +5127,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -5080,6 +5164,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "610be7fb-61b5-4b98-bb84-77d2dba41627",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -5100,6 +5188,8 @@
       "__id__": 0
     },
     "fileId": "48wRTeUgVMQpRMymfrMHjF",
+    "instance": null,
+    "targetOverrides": null,
     "nestedPrefabInstanceRoots": null
   },
   {
@@ -5135,7 +5225,7 @@
     },
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 4.496,
+      "x": 4.433,
       "y": 3.064,
       "z": -0.004
     },
@@ -5397,15 +5487,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -5434,6 +5524,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "610be7fb-61b5-4b98-bb84-77d2dba41627",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -5491,7 +5585,7 @@
     },
     "_lpos": {
       "__type__": "cc.Vec3",
-      "x": 0.44,
+      "x": 0.447,
       "y": 3.064,
       "z": -0.004
     },
@@ -5753,15 +5847,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -5790,6 +5884,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "610be7fb-61b5-4b98-bb84-77d2dba41627",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -6109,15 +6207,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -6146,6 +6244,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "610be7fb-61b5-4b98-bb84-77d2dba41627",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -6465,15 +6567,15 @@
     "_useGravity": true,
     "_linearFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_angularFactor": {
       "__type__": "cc.Vec3",
-      "x": 0.7,
-      "y": 0.7,
-      "z": 0.7
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -6502,6 +6604,10 @@
     "floorObjectName": "Floor",
     "mainCamera": null,
     "scorePrefab": null,
+    "destructionParticlePrefab": {
+      "__uuid__": "610be7fb-61b5-4b98-bb84-77d2dba41627",
+      "__expectedType__": "cc.Prefab"
+    },
     "scoreParent": null,
     "hitSound": null,
     "destructionSound": null,
@@ -6527,6 +6633,30 @@
     "nestedPrefabInstanceRoots": null
   },
   {
+    "__type__": "7b7e2roJgtEApSGS8sh5AiX",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 1
+    },
+    "_enabled": true,
+    "__prefab": {
+      "__id__": 303
+    },
+    "destructiblesParent": {
+      "__id__": 1
+    },
+    "maxProjectiles": 10,
+    "levelNumber": 1,
+    "scoreManager": null,
+    "_id": ""
+  },
+  {
+    "__type__": "cc.CompPrefabInfo",
+    "fileId": "47vmbQhXlLTY5nA7jcMgSO"
+  },
+  {
     "__type__": "cc.PrefabInfo",
     "root": {
       "__id__": 1
@@ -6535,6 +6665,7 @@
       "__id__": 0
     },
     "fileId": "87RAil/oRLLYgJpxwaruhh",
-    "instance": null
+    "instance": null,
+    "targetOverrides": null
   }
 ]

@@ -41,7 +41,10 @@ export class UniversalCollisionHandler extends Component {
     @property({ type: Prefab, tooltip: '3D префаб с текстом (Label компонент)' })
     scorePrefab: Prefab = null;
 
-    @property({ type: Node, tooltip: 'Родительский узел для спавна 3D текстов' })
+    @property({ type: Prefab, tooltip: 'Префаб партиклов уничтожения (спавнится в точке объекта)' })
+    destructionParticlePrefab: Prefab | null = null;
+
+    @property({ type: Node, tooltip: 'Родительский узел для спавна 3D Score' })
     scoreParent: Node | null = null;
 
     @property({ type: AudioClip, tooltip: 'Звук попадания' })
@@ -58,7 +61,6 @@ export class UniversalCollisionHandler extends Component {
     private rb: RigidBody | null = null;
     private lastHitTime: number = 0;
     public isDestroyed: boolean = false;
-    private destructionParticles: ParticleSystem | null = null;
     private meshRenderer: MeshRenderer | null = null;
     public scoreValue: number = 0;
 
@@ -71,11 +73,6 @@ export class UniversalCollisionHandler extends Component {
         if (collider) {
             collider.on('onCollisionEnter', this.onCollisionEnter, this);
             collider.on('onCollisionStay', this.onCollisionStay, this);
-        }
-
-        this.destructionParticles = this.node.getComponentInChildren(ParticleSystem);
-        if (isValid(this.destructionParticles)) {
-            this.destructionParticles.node.active = false;
         }
 
         this.meshRenderer = this.getComponent(MeshRenderer);
@@ -174,6 +171,10 @@ export class UniversalCollisionHandler extends Component {
             this.audioSource.play();
         }
 
+        const collider = this.getComponent(Collider);
+        if (isValid(collider)) collider.enabled = false;
+        if (isValid(this.rb)) this.rb.enabled = false;
+
         // 🔹 Плавное уменьшение всех мешей перед уничтожением
         for (const meshNode of this.childMeshes) {
             if (!isValid(meshNode)) continue;
@@ -185,17 +186,43 @@ export class UniversalCollisionHandler extends Component {
         this.scheduleOnce(() => {
             if (isValid(this.meshRenderer)) this.meshRenderer.enabled = false;
 
-            if (isValid(this.destructionParticles)) {
-                this.destructionParticles.node.active = true;
-                this.destructionParticles.play();
-            }
-
+            this.spawnDestructionParticles();
             this.spawnScorePopup(`+${this.scoreValue}`);
         }, 0.2);
 
         this.scheduleOnce(() => {
-            this.node.destroy();
+            if (isValid(this.node)) this.node.destroy();
         }, 0.7);
+    }
+
+    /** Спавнит префаб партиклов в точке уничтожения и проигрывает все ParticleSystem внутри. */
+    private spawnDestructionParticles() {
+        if (!isValid(this.destructionParticlePrefab)) return;
+
+        const scene = this.node.scene;
+        if (!isValid(scene)) return;
+
+        const fxNode = instantiate(this.destructionParticlePrefab);
+        if (!isValid(fxNode)) return;
+
+        scene.addChild(fxNode);
+        fxNode.setWorldPosition(this.node.worldPosition.clone());
+
+        let maxLife = 1;
+        const systems = fxNode.getComponentsInChildren(ParticleSystem);
+        for (const ps of systems) {
+            if (!isValid(ps)) continue;
+            const lifetime = ps.startLifetime?.constant ?? 0;
+            maxLife = Math.max(maxLife, (ps.duration || 0) + lifetime + 0.2);
+            ps.play();
+        }
+
+        tween(fxNode)
+            .delay(maxLife)
+            .call(() => {
+                if (isValid(fxNode)) fxNode.destroy();
+            })
+            .start();
     }
 
     spawnScorePopup(text: string) {

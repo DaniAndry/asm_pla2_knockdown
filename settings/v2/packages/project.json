@@ -5,5 +5,8 @@
       "name": "Layar_0",
       "value": 1
     }
-  ]
+  ],
+  "physics": {
+    "fixedTimeStep": 0.0166667
+  }
 }
