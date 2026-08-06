@@ -2567,8 +2567,8 @@
   {
     "__type__": "cc.CurveRange",
     "mode": 3,
-    "constantMin": 2.2,
-    "constantMax": 7.6,
+    "constantMin": 1,
+    "constantMax": 4,
     "multiplier": 1
   },
   {
@@ -3113,7 +3113,7 @@
     },
     "_gpuMaterial": null,
     "_mainTexture": {
-      "__uuid__": "4990a96e-b7fe-4235-ad0b-e6ca596bd35a@6c48a",
+      "__uuid__": "436357ad-1762-4855-9d11-8043b53de3e8@6c48a",
       "__expectedType__": "cc.Texture2D"
     },
     "_useGPU": false,

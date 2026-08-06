@@ -4,6 +4,7 @@ import {
     Collider,
     ICollisionEvent
 } from 'cc';
+import { UniversalCollisionHandler } from './UniversalCollisionHandler';
 
 const { ccclass } = _decorator;
 
@@ -25,10 +26,10 @@ export class FloorCollisionDestroyer extends Component {
 
     onCollisionEnter(event: ICollisionEvent) {
         const otherNode = event.otherCollider.node;
-        const handler = otherNode.getComponent('UniversalCollisionHandler');
+        const handler = otherNode.getComponent(UniversalCollisionHandler);
 
-        if (handler && typeof handler['destroySelf'] === 'function') {
-            handler['destroySelf']();
+        if (handler) {
+            handler.scheduleDestroyFromFloor();
         }
     }
 }

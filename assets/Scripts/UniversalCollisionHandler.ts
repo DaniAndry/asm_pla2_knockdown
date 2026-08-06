@@ -32,8 +32,14 @@ export class UniversalCollisionHandler extends Component {
     @property({ tooltip: 'Использовать систему HP' })
     useHealthSystem: boolean = true;
 
-    @property({ tooltip: 'Название объекта пола для мгновенного уничтожения' })
+    @property({ tooltip: 'Название объекта пола для уничтожения с задержкой' })
     floorObjectName: string = 'Floor';
+
+    @property({ tooltip: 'Мин. задержка уничтожения при падении на Floor (сек)' })
+    floorDestroyDelayMin: number = 0.3;
+
+    @property({ tooltip: 'Макс. задержка уничтожения при падении на Floor (сек)' })
+    floorDestroyDelayMax: number = 0.6;
 
     @property({ type: Prefab, tooltip: '3D префаб с текстом (Label компонент)' })
     scorePrefab: Prefab = null;
@@ -65,6 +71,7 @@ export class UniversalCollisionHandler extends Component {
     private rb: RigidBody | null = null;
     private lastHitTime: number = 0;
     public isDestroyed: boolean = false;
+    private floorDestroyScheduled: boolean = false;
     private meshRenderer: MeshRenderer | null = null;
     public scoreValue: number = 0;
 
@@ -121,7 +128,7 @@ export class UniversalCollisionHandler extends Component {
         const otherNode = event.otherCollider.node;
 
         if (isValid(otherNode) && otherNode.name === this.floorObjectName) {
-            this.destroySelf();
+            this.scheduleDestroyFromFloor();
             return;
         }
 
@@ -166,6 +173,20 @@ export class UniversalCollisionHandler extends Component {
         }
         UniversalCollisionHandler.lastGlobalHitSoundTime = now;
         SoundManager.playOneShot(this.hitSoundName);
+    }
+
+    /** Уничтожение после падения на Floor — с рандомной задержкой */
+    public scheduleDestroyFromFloor() {
+        if (this.isDestroyed || this.floorDestroyScheduled) return;
+        this.floorDestroyScheduled = true;
+
+        const min = Math.min(this.floorDestroyDelayMin, this.floorDestroyDelayMax);
+        const max = Math.max(this.floorDestroyDelayMin, this.floorDestroyDelayMax);
+        const delay = min + Math.random() * (max - min);
+
+        this.scheduleOnce(() => {
+            if (!this.isDestroyed) this.destroySelf();
+        }, delay);
     }
 
     applyDamage(amount: number) {

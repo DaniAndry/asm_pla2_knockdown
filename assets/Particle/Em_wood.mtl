@@ -36,15 +36,22 @@
   "_props": [
     {
       "mainTexture": {
-        "__uuid__": "4990a96e-b7fe-4235-ad0b-e6ca596bd35a@6c48a",
+        "__uuid__": "436357ad-1762-4855-9d11-8043b53de3e8@6c48a",
         "__expectedType__": "cc.Texture2D"
+      },
+      "mainTiling_Offset": {
+        "__type__": "cc.Vec4",
+        "x": 1,
+        "y": 1,
+        "z": 2,
+        "w": 2
       },
       "tintColor": {
         "__type__": "cc.Color",
-        "r": 214,
-        "g": 192,
-        "b": 124,
-        "a": 135
+        "r": 188,
+        "g": 199,
+        "b": 133,
+        "a": 206
       }
     },
     {}
