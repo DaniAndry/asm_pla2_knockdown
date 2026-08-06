@@ -7,6 +7,15 @@
     }
   ],
   "physics": {
-    "fixedTimeStep": 0.0166667
+    "fixedTimeStep": 0.0333333,
+    "maxSubSteps": 1
+  },
+  "general": {
+    "designResolution": {
+      "width": 720,
+      "height": 1280,
+      "fitHeight": false,
+      "fitWidth": true
+    }
   }
 }

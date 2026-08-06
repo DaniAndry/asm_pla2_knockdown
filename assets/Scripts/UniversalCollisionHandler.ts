@@ -14,10 +14,10 @@ import {
     Prefab,
     tween,
     Label,
-    AudioClip,
-    AudioSource,
-    isValid
+    isValid,
+    director
 } from 'cc';
+import { SoundManager } from './SoundManager';
 
 const { ccclass, property } = _decorator;
 
@@ -33,10 +33,7 @@ export class UniversalCollisionHandler extends Component {
     useHealthSystem: boolean = true;
 
     @property({ tooltip: 'Название объекта пола для мгновенного уничтожения' })
-    floorObjectName: string = "Floor";
-
-    @property({ type: Camera, tooltip: 'Камера для Billboard эффекта' })
-    mainCamera: Camera = null;
+    floorObjectName: string = 'Floor';
 
     @property({ type: Prefab, tooltip: '3D префаб с текстом (Label компонент)' })
     scorePrefab: Prefab = null;
@@ -47,16 +44,23 @@ export class UniversalCollisionHandler extends Component {
     @property({ type: Node, tooltip: 'Родительский узел для спавна 3D Score' })
     scoreParent: Node | null = null;
 
-    @property({ type: AudioClip, tooltip: 'Звук попадания' })
-    hitSound: AudioClip | null = null;
+    @property({ tooltip: 'Имя записи в SoundManager для звука попадания' })
+    hitSoundName: string = 'hitWood';
 
-    @property({ type: AudioClip, tooltip: 'Звук уничтожения' })
-    destructionSound: AudioClip | null = null;
+    @property({ tooltip: 'Имя записи в SoundManager для звука уничтожения (пусто = только hit)' })
+    destructionSoundName: string = '';
 
-    @property({ type: AudioSource }) audioSource: AudioSource | null = null;
+    @property({ tooltip: 'Кулдаун звука попадания (сек), общий на все объекты' })
+    hitSoundCooldown: number = 0.12;
+
+    @property({ tooltip: 'Радиус пробуждения соседних RigidBody при уничтожении' })
+    wakeRadius: number = 5;
 
     @property({ tooltip: 'Тег снаряда (например: Projectile)' })
-    projectileTag: string = "Projectile";
+    projectileTag: string = 'Projectile';
+
+    /** Прокидывается из LevelManager */
+    private mainCamera: Camera | null = null;
 
     private rb: RigidBody | null = null;
     private lastHitTime: number = 0;
@@ -66,19 +70,32 @@ export class UniversalCollisionHandler extends Component {
 
     private childMeshes: Node[] = [];
 
+    private static lastGlobalHitSoundTime: number = 0;
+    /** Кэш всех живых разрушаемых RB — без полного scan сцены на каждый destroy */
+    private static liveBodies: Set<RigidBody> = new Set();
+    /** Лимит одновременных FX уничтожения (playable perf) */
+    private static activeFxCount: number = 0;
+    private static readonly MAX_ACTIVE_FX: number = 6;
+
     onLoad() {
         this.rb = this.getComponent(RigidBody);
         const collider = this.getComponent(Collider);
 
+        // Только Enter — Stay на 400+ объектах убивает FPS
         if (collider) {
             collider.on('onCollisionEnter', this.onCollisionEnter, this);
-            collider.on('onCollisionStay', this.onCollisionStay, this);
         }
 
         this.meshRenderer = this.getComponent(MeshRenderer);
-
-        // 💡 собираем все дочерние ноды с MeshRenderer
         this.collectChildMeshes(this.node);
+
+        if (isValid(this.rb)) {
+            UniversalCollisionHandler.liveBodies.add(this.rb);
+        }
+    }
+
+    public applyLevelSharedRefs(camera: Camera | null) {
+        this.mainCamera = camera;
     }
 
     private collectChildMeshes(node: Node) {
@@ -93,16 +110,9 @@ export class UniversalCollisionHandler extends Component {
         const collider = this.getComponent(Collider);
         if (isValid(collider)) {
             collider.off('onCollisionEnter', this.onCollisionEnter, this);
-            collider.off('onCollisionStay', this.onCollisionStay, this);
         }
-    }
-
-    onCollisionStay(event: ICollisionEvent) {
-        if (this.isDestroyed) return;
-        const otherNode = event.otherCollider.node;
-        if (isValid(otherNode) && otherNode.name === this.floorObjectName) {
-            this.destroySelf();
-            return;
+        if (isValid(this.rb)) {
+            UniversalCollisionHandler.liveBodies.delete(this.rb);
         }
     }
 
@@ -120,6 +130,7 @@ export class UniversalCollisionHandler extends Component {
         this.lastHitTime = now;
 
         if (isValid(otherNode) && otherNode.name.includes(this.projectileTag)) {
+            SoundManager.notifyHit();
             this.playHitSound();
         }
 
@@ -147,9 +158,14 @@ export class UniversalCollisionHandler extends Component {
     }
 
     private playHitSound() {
-        if (isValid(this.hitSound) && isValid(this.audioSource)) {
-            this.audioSource.playOneShot(this.hitSound, 1);
+        if (!this.hitSoundName || !SoundManager.hitsEnabled) return;
+
+        const now = performance.now() / 1000;
+        if (now - UniversalCollisionHandler.lastGlobalHitSoundTime < this.hitSoundCooldown) {
+            return;
         }
+        UniversalCollisionHandler.lastGlobalHitSoundTime = now;
+        SoundManager.playOneShot(this.hitSoundName);
     }
 
     applyDamage(amount: number) {
@@ -166,38 +182,79 @@ export class UniversalCollisionHandler extends Component {
 
         this.node.emit('destroyed', this);
 
-        if (isValid(this.destructionSound) && isValid(this.audioSource)) {
-            this.audioSource.clip = this.destructionSound;
-            this.audioSource.play();
+        this.playHitSound();
+        if (this.destructionSoundName
+            && this.destructionSoundName !== this.hitSoundName) {
+            SoundManager.playOneShot(this.destructionSoundName);
         }
 
-        const collider = this.getComponent(Collider);
-        if (isValid(collider)) collider.enabled = false;
-        if (isValid(this.rb)) this.rb.enabled = false;
+        const origin = this.node.worldPosition.clone();
+        const radius = this.wakeRadius;
 
-        // 🔹 Плавное уменьшение всех мешей перед уничтожением
-        for (const meshNode of this.childMeshes) {
-            if (!isValid(meshNode)) continue;
-            tween(meshNode)
-                .to(0.1, { scale: new Vec3(0, 0, 0) })
-                .start();
+        const colliders = this.node.getComponentsInChildren(Collider);
+        for (const c of colliders) {
+            if (isValid(c)) c.enabled = false;
         }
 
-        this.scheduleOnce(() => {
-            if (isValid(this.meshRenderer)) this.meshRenderer.enabled = false;
+        if (isValid(this.rb)) {
+            UniversalCollisionHandler.liveBodies.delete(this.rb);
+            this.rb.setLinearVelocity(Vec3.ZERO);
+            this.rb.setAngularVelocity(Vec3.ZERO);
+            this.rb.enabled = false;
+        }
 
-            this.spawnDestructionParticles();
-            this.spawnScorePopup(`+${this.scoreValue}`);
-        }, 0.2);
+        UniversalCollisionHandler.wakeAround(origin, radius);
 
-        this.scheduleOnce(() => {
-            if (isValid(this.node)) this.node.destroy();
-        }, 0.7);
+        // Повторный wake через scheduler сцены — this.node.destroy() отменил бы scheduleOnce
+        const scene = this.node.scene;
+        if (isValid(scene)) {
+            const scheduler = director.getScheduler();
+            scheduler.schedule(() => {
+                UniversalCollisionHandler.wakeAround(origin, radius);
+            }, scene, 0, 0, 0.08, false);
+        }
+
+        this.hideMeshes();
+        this.spawnDestructionParticles(origin);
+        this.spawnScorePopup(`+${this.scoreValue}`);
+
+        if (isValid(this.node)) this.node.destroy();
     }
 
-    /** Спавнит префаб партиклов в точке уничтожения и проигрывает все ParticleSystem внутри. */
-    private spawnDestructionParticles() {
+    private hideMeshes() {
+        if (isValid(this.meshRenderer)) this.meshRenderer.enabled = false;
+
+        for (const meshNode of this.childMeshes) {
+            if (!isValid(meshNode)) continue;
+            const renderers = meshNode.getComponents(MeshRenderer);
+            for (const renderer of renderers) {
+                if (isValid(renderer)) renderer.enabled = false;
+            }
+        }
+    }
+
+    private static wakeAround(origin: Vec3, radius: number) {
+        const radiusSqr = radius * radius;
+
+        for (const other of UniversalCollisionHandler.liveBodies) {
+            if (!isValid(other) || !other.enabled || !other.isDynamic) continue;
+
+            if (Vec3.squaredDistance(origin, other.node.worldPosition) > radiusSqr) continue;
+
+            other.wakeUp();
+            other.applyImpulse(new Vec3(
+                (Math.random() - 0.5) * 0.2,
+                -Math.max(other.mass * 0.9, 0.6),
+                (Math.random() - 0.5) * 0.2
+            ));
+        }
+    }
+
+    private spawnDestructionParticles(worldPos: Vec3) {
         if (!isValid(this.destructionParticlePrefab)) return;
+        if (UniversalCollisionHandler.activeFxCount >= UniversalCollisionHandler.MAX_ACTIVE_FX) {
+            return;
+        }
 
         const scene = this.node.scene;
         if (!isValid(scene)) return;
@@ -205,21 +262,23 @@ export class UniversalCollisionHandler extends Component {
         const fxNode = instantiate(this.destructionParticlePrefab);
         if (!isValid(fxNode)) return;
 
+        UniversalCollisionHandler.activeFxCount++;
         scene.addChild(fxNode);
-        fxNode.setWorldPosition(this.node.worldPosition.clone());
+        fxNode.setWorldPosition(worldPos);
 
-        let maxLife = 1;
+        let maxLife = 0.8;
         const systems = fxNode.getComponentsInChildren(ParticleSystem);
         for (const ps of systems) {
             if (!isValid(ps)) continue;
             const lifetime = ps.startLifetime?.constant ?? 0;
-            maxLife = Math.max(maxLife, (ps.duration || 0) + lifetime + 0.2);
+            maxLife = Math.max(maxLife, (ps.duration || 0) + lifetime + 0.15);
             ps.play();
         }
 
         tween(fxNode)
             .delay(maxLife)
             .call(() => {
+                UniversalCollisionHandler.activeFxCount = Math.max(0, UniversalCollisionHandler.activeFxCount - 1);
                 if (isValid(fxNode)) fxNode.destroy();
             })
             .start();
@@ -239,7 +298,6 @@ export class UniversalCollisionHandler extends Component {
         }
 
         if (!isValid(parent)) {
-            console.warn("[UniversalCollisionHandler] Нет родительского узла для спавна Score!");
             scoreNode.destroy();
             return;
         }
@@ -255,8 +313,9 @@ export class UniversalCollisionHandler extends Component {
         }
 
         const billboardComponent = scoreNode.getComponent('BillboardText');
-        if (isValid(billboardComponent) && isValid(this.mainCamera)) {
-            (billboardComponent as any).targetCamera = this.mainCamera;
+        const camera = isValid(this.mainCamera) ? this.mainCamera : Camera.main;
+        if (isValid(billboardComponent) && isValid(camera)) {
+            (billboardComponent as any).targetCamera = camera;
         }
 
         tween(scoreNode)

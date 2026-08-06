@@ -1,11 +1,12 @@
 import {
     _decorator, Component, Node, Vec3, Vec2, Camera, RigidBody,
     input, Input, EventTouch, CCFloat, Quat,
-    AudioClip, AudioSource, screen, MeshRenderer,
+    screen, MeshRenderer,
     PhysicsSystem, Animation, AnimationClip, Collider
 } from 'cc';
 import { LevelSwitcher } from './LevelSwitcher';
 import { TrajectoryDrawer3D } from './TrajectoryDrawer3D';
+import { SoundManager } from './SoundManager';
 const { ccclass, property } = _decorator;
 
 const _tempVec3 = new Vec3();
@@ -15,7 +16,6 @@ const _tempQuat = new Quat();
 export class CannonController extends Component {
     @property(Node) cannonBarrel: Node = null;
     @property(Node) cannonMuzzle: Node = null;
-    @property(Node) projectile: Node = null;
     @property(Camera) camera: Camera = null;
     @property(Animation) cannonAnimation: Animation = null;
     @property(AnimationClip) shootAnimationClip: AnimationClip = null;
@@ -31,14 +31,19 @@ export class CannonController extends Component {
     @property({ type: CCFloat, visible: function (this: any) { return !this.allowFullScreenControl; } })
     controlMaxX: number = 1;
     @property(LevelSwitcher) levelSwitcher: LevelSwitcher = null;
-    @property({ type: AudioClip }) launchSound: AudioClip = null;
-    @property({ type: AudioSource }) audioSource: AudioSource = null;
+    @property({ tooltip: 'Имя записи в SoundManager для звука выстрела' })
+    launchSoundName: string = 'Shoot';
     @property({ tooltip: 'Пауза между выстрелами при удержании (сек)' })
     fireHoldInterval: number = 0.3;
+    @property({ tooltip: 'Сколько секунд дать стеку осесть, затем заморозить физику до первого выстрела' })
+    settleDuration: number = 1.2;
 
     private hasLaunched = false;
+    private projectile: Node = null;
     private isPhysicsEnabled = false;
-    private physicsDisableCallback: Function = null;
+    /** После первого выстрела физика больше не замораживается до смены уровня */
+    private physicsUnlocked = false;
+    private settleCallback: (() => void) | null = null;
     private _trajectoryDrawerComponent: TrajectoryDrawer3D = null;
     private initialProjectilePosition: Vec3 = new Vec3();
     private targetClickPoint: Vec2 = null;
@@ -72,7 +77,7 @@ export class CannonController extends Component {
 
         if (this.cannonBarrel) this.initialBarrelRotation.set(this.cannonBarrel.rotation);
         this.updateCannonRotation();
-        this.enablePhysicsTemporarily(2);
+        this.beginPreShotPhysicsHold();
     }
 
     onDestroy() {
@@ -84,14 +89,9 @@ export class CannonController extends Component {
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
         window.removeEventListener('blur', this._onWindowBlur);
 
-        if (this.physicsDisableCallback) {
-            this.unschedule(this.physicsDisableCallback);
-            this.physicsDisableCallback = null;
-        }
-
+        this.clearSettleCallback();
         this.unscheduleAllCallbacks();
-        const physicsSystem = PhysicsSystem.instance;
-        if (physicsSystem) physicsSystem.enable = true;
+        this.enablePhysics();
     }
 
     public setProjectile(projectile: Node) {
@@ -110,9 +110,18 @@ export class CannonController extends Component {
             rb.setAngularVelocity(Vec3.ZERO);
         }
 
+        const collider = this.projectile.getComponent(Collider);
+        if (collider) collider.enabled = true;
+
         this.resetState();
         this._trajectoryDrawerComponent = this.projectile.getComponent(TrajectoryDrawer3D);
         if (this._trajectoryDrawerComponent) this._trajectoryDrawerComponent.clear();
+    }
+
+    public clearProjectile() {
+        this.projectile = null;
+        this.hasLaunched = true;
+        this._trajectoryDrawerComponent = null;
     }
 
     private resetState() {
@@ -121,7 +130,7 @@ export class CannonController extends Component {
 
     public resetForNewLevel() {
         this.resetState();
-        this.enablePhysicsTemporarily(2);
+        this.beginPreShotPhysicsHold();
     }
 
     private updateCannonRotation() {
@@ -134,6 +143,9 @@ export class CannonController extends Component {
     }
 
     private onTouchStart(event: EventTouch) {
+        // Разблокируем аудио на жесте прицеливания/выстрела
+        SoundManager.markFirstTouch();
+
         if (!this.projectile || !this.projectile.isValid) return;
         const touch = event.getLocation();
 
@@ -195,7 +207,7 @@ export class CannonController extends Component {
         const normalizedY = (touchPos.y / screenHeight - 0.5) * 2;
 
         const maxHorizontalAngle = 30;
-        this.currentHorizontalAngle = normalizedX * maxHorizontalAngle;
+        this.currentHorizontalAngle = -normalizedX * maxHorizontalAngle;
 
         const minVert = this.minVerticalAngle;
         const maxVert = this.maxVerticalAngle;
@@ -222,7 +234,7 @@ export class CannonController extends Component {
         if (!rb) return;
 
         if (this.cannonMuzzle) this.projectile.worldPosition = this.cannonMuzzle.worldPosition;
-        this.enablePhysics();
+        this.unlockPhysicsForGameplay();
         this.enableMeshesRecursively(this.projectile);
 
         rb.enabled = true;
@@ -250,12 +262,8 @@ export class CannonController extends Component {
     }
 
     private playLaunchSound() {
-        if (!this.launchSound || !this.audioSource) return;
-        if (this.audioSource.node.active) {
-            this.audioSource.stop();
-            this.audioSource.clip = this.launchSound;
-            this.audioSource.play();
-        }
+        if (!this.launchSoundName) return;
+        SoundManager.playOneShot(this.launchSoundName);
     }
 
     private playShootAnimation() {
@@ -279,40 +287,55 @@ export class CannonController extends Component {
         node.children.forEach(child => this.enableMeshesRecursively(child));
     }
 
+    private clearSettleCallback() {
+        if (this.settleCallback) {
+            this.unschedule(this.settleCallback);
+            this.settleCallback = null;
+        }
+    }
+
+    /**
+     * Дать стеку коротко осесть, затем заморозить физику до первого выстрела.
+     * После выстрела физика остаётся включённой до смены уровня.
+     */
+    private beginPreShotPhysicsHold() {
+        this.clearSettleCallback();
+        this.physicsUnlocked = false;
+        SoundManager.disableHits();
+        this.enablePhysics();
+
+        const duration = Math.max(0, this.settleDuration);
+        if (duration <= 0) {
+            this.disablePhysics();
+            return;
+        }
+
+        this.settleCallback = () => {
+            this.settleCallback = null;
+            if (!this.physicsUnlocked) {
+                this.disablePhysics();
+            }
+        };
+        this.scheduleOnce(this.settleCallback, duration);
+    }
+
+    /** Первый выстрел / геймплей — физика больше не отключается до reset уровня */
+    private unlockPhysicsForGameplay() {
+        this.physicsUnlocked = true;
+        SoundManager.enableHits();
+        this.clearSettleCallback();
+        this.enablePhysics();
+    }
+
     private disablePhysics() {
         const physicsSystem = PhysicsSystem.instance;
-        if (physicsSystem) {
-            physicsSystem.enable = false;
-            this.isPhysicsEnabled = false;
-        }
+        if (physicsSystem) physicsSystem.enable = false;
+        this.isPhysicsEnabled = false;
     }
 
     private enablePhysics() {
-        if (this.physicsDisableCallback) {
-            this.unschedule(this.physicsDisableCallback);
-            this.physicsDisableCallback = null;
-        }
-        if (!this.isPhysicsEnabled) {
-            const physicsSystem = PhysicsSystem.instance;
-            if (physicsSystem) {
-                physicsSystem.enable = true;
-                this.isPhysicsEnabled = true;
-            }
-        }
-    }
-
-    private enablePhysicsTemporarily(duration: number) {
-        if (this.physicsDisableCallback) {
-            this.unschedule(this.physicsDisableCallback);
-            this.physicsDisableCallback = null;
-        }
         const physicsSystem = PhysicsSystem.instance;
         if (physicsSystem) physicsSystem.enable = true;
         this.isPhysicsEnabled = true;
-        this.physicsDisableCallback = () => {
-            this.disablePhysics();
-            this.physicsDisableCallback = null;
-        };
-        this.scheduleOnce(this.physicsDisableCallback, duration);
     }
 }

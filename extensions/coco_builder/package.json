@@ -1,0 +1,82 @@
+{
+    "package_version": 2,
+    "version": "3.1.7",
+    "name": "super-html",
+    "uuid": "aabbccdd-eeff-4000-8000-001122334455",
+    "description": "i18n:super-html.description",
+    "author": "https://github.com/magician-f",
+    "homepage": "https://store.cocos.com/app/detail/3657",
+    "main": "./dist/3x/main.js",
+    "contributions": {
+        "menu": [
+            {
+                "path": "i18n:menu.extension",
+                "label": "i18n:super-html.open_panel",
+                "message": "open-panel"
+            }
+        ],
+        "messages": {
+            "open-panel": {
+                "methods": [
+                    "open_panel"
+                ]
+            },
+            "query-batch-ui": {
+                "methods": [
+                    "query_batch_ui"
+                ]
+            },
+            "run-playable-batch": {
+                "methods": [
+                    "run_playable_batch"
+                ]
+            },
+            "pick-web-mobile-folder": {
+                "methods": [
+                    "pick_web_mobile_folder"
+                ]
+            },
+            "open-playable-applier-folder": {
+                "methods": [
+                    "open_playable_applier_folder"
+                ]
+            },
+            "validate-playable-batch-iterations": {
+                "methods": [
+                    "validate_playable_batch_iterations"
+                ]
+            },
+            "update-extension-from-github": {
+                "methods": [
+                    "update_extension_from_github"
+                ]
+            }
+        }
+    },
+    "devDependencies": {},
+    "dependencies": {
+        "cheerio": "^1.0.0-rc.12",
+        "vue": "^3.1.4",
+        "clean-css": "^4.2.1",
+        "jszip": "^3.7.1",
+        "mime-types": "^2.1.32",
+        "uglify-js": "^3.6.0"
+    },
+    "panels": {
+        "default": {
+            "title": "i18n:super-html.batch_panel_title",
+            "main": "dist/3x/batch_panel",
+            "size": {
+                "min-width": 520,
+                "min-height": 640,
+                "width": 560,
+                "height": 720
+            }
+        }
+    },
+    "editor": ">=3.4.0",
+    "scripts": {
+        "build": "tsc -b",
+        "watch": "tsc -w"
+    }
+}

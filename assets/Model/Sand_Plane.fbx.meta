@@ -73,6 +73,18 @@
       "scenes": [
         "9e4a10f3-00da-4744-a407-9ad1dd380639@de26a"
       ]
+    },
+    "meshCompress": {
+      "enable": true,
+      "encode": true
+    },
+    "meshOptimize": {
+      "enable": true,
+      "vertexCache": true
+    },
+    "meshSimplify": {
+      "enable": true,
+      "targetRatio": 0.52
     }
   }
 }

@@ -73,16 +73,7 @@ export class GameController extends Component {
         console.log(`[GameController] Уровень ${levelNumber} завершен!`);
         console.log(`Победа: ${victory}, Осталось объектов: ${remainingObjects}, Снарядов: ${projectilesUsed}`);
 
-        // Ждем немного перед переходом
-        this.scheduleOnce(() => {
-            if (victory) {
-                // ПОБЕДА - переходим к следующему уровню
-                this.nextLevel();
-            } else {
-                // ПОРАЖЕНИЕ - перезапускаем текущий уровень
-                this.restartCurrentLevel();
-            }
-        }, 2); // 2 секунды на просмотр результата
+        // Переходы / lose / finish теперь полностью ведёт LevelSwitcher
     }
 
     // Следующий уровень

@@ -1,0 +1,30 @@
+{
+  "version": 8,
+  "panelLang": "ru",
+  "selectedChannels": [
+    "unity"
+  ],
+  "webRoot": "build/web-mobile",
+  "batchBuildName": "NAME_PLA",
+  "batchNamesLowercase": true,
+  "useIter": true,
+  "iterationsSnapshot": [
+    {
+      "folder": "full",
+      "target": {
+        "nodePath": "",
+        "component": "GameSessionController",
+        "properties": {
+          "usePlayableEndRules": false
+        }
+      }
+    }
+  ],
+  "obfusc": true,
+  "channelOptions": {
+    "debugAllPlatforms": false,
+    "applovin": {
+      "axonLoading": false
+    }
+  }
+}

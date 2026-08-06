@@ -97,7 +97,7 @@
         "editorExtras": {
           "embeddedPlayerGroups": []
         },
-        "speed": 1,
+        "speed": 2,
         "auxiliaryCurves": {}
       },
       "ver": "1.0.18",
@@ -284,7 +284,8 @@
             "from": 0,
             "to": 1.0131147540983607,
             "wrapMode": 1,
-            "previousId": "2cd1c"
+            "previousId": "2cd1c",
+            "speed": 2
           }
         ]
       }
@@ -527,6 +528,18 @@
           {}
         ]
       }
+    },
+    "meshCompress": {
+      "enable": true,
+      "encode": true
+    },
+    "meshOptimize": {
+      "enable": true,
+      "vertexCache": true
+    },
+    "meshSimplify": {
+      "enable": true,
+      "targetRatio": 0.52
     }
   }
 }
