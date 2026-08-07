@@ -1,0 +1,154 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "e420661b-c398-4071-8f00-6680196def29",
+  "files": [
+    "__original-animation-0.bin"
+  ],
+  "subMetas": {
+    "e2349": {
+      "importer": "gltf-mesh",
+      "uuid": "e420661b-c398-4071-8f00-6680196def29@e2349",
+      "displayName": "",
+      "id": "e2349",
+      "name": "Mesh.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 4428
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "b05e6": {
+      "importer": "gltf-mesh",
+      "uuid": "e420661b-c398-4071-8f00-6680196def29@b05e6",
+      "displayName": "",
+      "id": "b05e6",
+      "name": "Mesh.003.mesh",
+      "userData": {
+        "gltfIndex": 1,
+        "triangleCount": 14
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f39b2": {
+      "importer": "gltf-animation",
+      "uuid": "e420661b-c398-4071-8f00-6680196def29@f39b2",
+      "displayName": "",
+      "id": "f39b2",
+      "name": "Action.animation",
+      "userData": {
+        "gltfIndex": 0,
+        "wrapMode": 2,
+        "sample": 30,
+        "span": {
+          "from": 0,
+          "to": 3.299999952316284
+        },
+        "events": []
+      },
+      "ver": "1.0.18",
+      "imported": true,
+      "files": [
+        ".bin"
+      ],
+      "subMetas": {}
+    },
+    "f9d1d": {
+      "importer": "gltf-skeleton",
+      "uuid": "e420661b-c398-4071-8f00-6680196def29@f9d1d",
+      "displayName": "",
+      "id": "f9d1d",
+      "name": "Armature.skeleton",
+      "userData": {
+        "gltfIndex": 0,
+        "jointsLength": 4
+      },
+      "ver": "1.0.1",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "8f495": {
+      "importer": "gltf-scene",
+      "uuid": "e420661b-c398-4071-8f00-6680196def29@8f495",
+      "displayName": "",
+      "id": "8f495",
+      "name": "Heavy_Box.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "animationImportSettings": [
+      {
+        "name": "Action",
+        "duration": 3.299999952316284,
+        "fps": 30,
+        "splits": [
+          {
+            "name": "Action",
+            "from": 0,
+            "to": 3.299999952316284,
+            "wrapMode": 2,
+            "previousId": "f39b2"
+          }
+        ]
+      }
+    ],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "e420661b-c398-4071-8f00-6680196def29@e2349",
+        "e420661b-c398-4071-8f00-6680196def29@b05e6"
+      ],
+      "skeletons": [
+        "e420661b-c398-4071-8f00-6680196def29@f9d1d"
+      ],
+      "textures": [],
+      "materials": [],
+      "scenes": [
+        "e420661b-c398-4071-8f00-6680196def29@8f495"
+      ]
+    }
+  }
+}

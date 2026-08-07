@@ -88,17 +88,10 @@
   ],
   "_props": [
     {
-      "mainColor": {
-        "__type__": "cc.Color",
-        "r": 224,
-        "g": 224,
-        "b": 224,
-        "a": 255
-      },
       "albedoScale": {
         "__type__": "cc.Vec3",
-        "x": 1,
-        "y": 1.2,
+        "x": 1.2,
+        "y": 1.6,
         "z": 1
       },
       "roughness": 0.299,

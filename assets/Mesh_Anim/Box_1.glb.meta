@@ -1,0 +1,135 @@
+{
+  "ver": "2.3.14",
+  "importer": "gltf",
+  "imported": true,
+  "uuid": "1d8aac66-ebb6-4c65-ab74-04a9beca1a02",
+  "files": [
+    "__original-animation-0.bin"
+  ],
+  "subMetas": {
+    "e2349": {
+      "importer": "gltf-mesh",
+      "uuid": "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@e2349",
+      "displayName": "",
+      "id": "e2349",
+      "name": "Mesh.mesh",
+      "userData": {
+        "gltfIndex": 0,
+        "triangleCount": 3628
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "f39b2": {
+      "importer": "gltf-animation",
+      "uuid": "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@f39b2",
+      "displayName": "",
+      "id": "f39b2",
+      "name": "Action.animation",
+      "userData": {
+        "gltfIndex": 0,
+        "wrapMode": 2,
+        "sample": 30,
+        "span": {
+          "from": 0,
+          "to": 3.299999952316284
+        },
+        "events": []
+      },
+      "ver": "1.0.18",
+      "imported": true,
+      "files": [
+        ".bin"
+      ],
+      "subMetas": {}
+    },
+    "288fa": {
+      "importer": "gltf-skeleton",
+      "uuid": "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@288fa",
+      "displayName": "",
+      "id": "288fa",
+      "name": "Box_1.skeleton",
+      "userData": {
+        "gltfIndex": 0,
+        "jointsLength": 3
+      },
+      "ver": "1.0.1",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "5a69d": {
+      "importer": "gltf-scene",
+      "uuid": "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@5a69d",
+      "displayName": "",
+      "id": "5a69d",
+      "name": "Box_1.prefab",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    }
+  },
+  "userData": {
+    "imageMetas": [],
+    "animationImportSettings": [
+      {
+        "name": "Action",
+        "duration": 3.299999952316284,
+        "fps": 30,
+        "splits": [
+          {
+            "name": "Action",
+            "from": 0,
+            "to": 3.299999952316284,
+            "wrapMode": 2,
+            "previousId": "f39b2"
+          }
+        ]
+      }
+    ],
+    "lods": {
+      "enable": false,
+      "hasBuiltinLOD": false,
+      "options": [
+        {
+          "screenRatio": 0.25,
+          "faceCount": 1
+        },
+        {
+          "screenRatio": 0.125,
+          "faceCount": 0.25
+        },
+        {
+          "screenRatio": 0.01,
+          "faceCount": 0.1
+        }
+      ]
+    },
+    "assetFinder": {
+      "meshes": [
+        "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@e2349"
+      ],
+      "skeletons": [
+        "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@288fa"
+      ],
+      "textures": [],
+      "materials": [],
+      "scenes": [
+        "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@5a69d"
+      ]
+    }
+  }
+}
