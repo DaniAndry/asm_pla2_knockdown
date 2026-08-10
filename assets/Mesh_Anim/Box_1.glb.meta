@@ -7,15 +7,15 @@
     "__original-animation-0.bin"
   ],
   "subMetas": {
-    "e2349": {
+    "b05e6": {
       "importer": "gltf-mesh",
-      "uuid": "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@e2349",
+      "uuid": "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@b05e6",
       "displayName": "",
-      "id": "e2349",
-      "name": "Mesh.mesh",
+      "id": "b05e6",
+      "name": "Mesh.003.mesh",
       "userData": {
         "gltfIndex": 0,
-        "triangleCount": 3628
+        "triangleCount": 1564
       },
       "ver": "1.1.1",
       "imported": true,
@@ -25,19 +25,19 @@
       ],
       "subMetas": {}
     },
-    "f39b2": {
+    "053f9": {
       "importer": "gltf-animation",
-      "uuid": "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@f39b2",
+      "uuid": "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@053f9",
       "displayName": "",
-      "id": "f39b2",
-      "name": "Action.animation",
+      "id": "053f9",
+      "name": "Action_Box_1.animation",
       "userData": {
         "gltfIndex": 0,
         "wrapMode": 2,
         "sample": 30,
         "span": {
           "from": 0,
-          "to": 3.299999952316284
+          "to": 2.0999999046325684
         },
         "events": []
       },
@@ -86,16 +86,16 @@
     "imageMetas": [],
     "animationImportSettings": [
       {
-        "name": "Action",
-        "duration": 3.299999952316284,
+        "name": "Action_Box_1",
+        "duration": 2.0999999046325684,
         "fps": 30,
         "splits": [
           {
-            "name": "Action",
+            "name": "Action_Box_1",
             "from": 0,
-            "to": 3.299999952316284,
+            "to": 2.0999999046325684,
             "wrapMode": 2,
-            "previousId": "f39b2"
+            "previousId": "053f9"
           }
         ]
       }
@@ -120,7 +120,7 @@
     },
     "assetFinder": {
       "meshes": [
-        "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@e2349"
+        "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@b05e6"
       ],
       "skeletons": [
         "1d8aac66-ebb6-4c65-ab74-04a9beca1a02@288fa"

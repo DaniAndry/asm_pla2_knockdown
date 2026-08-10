@@ -7,29 +7,6 @@
     "__original-animation-0.bin"
   ],
   "subMetas": {
-    "56450": {
-      "importer": "gltf-animation",
-      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@56450",
-      "displayName": "",
-      "id": "56450",
-      "name": "Armature|CINEMA_4D_Main|Layer0.animation",
-      "userData": {
-        "gltfIndex": 0,
-        "wrapMode": 2,
-        "sample": 30,
-        "span": {
-          "from": 0,
-          "to": 3.299999952316284
-        },
-        "events": []
-      },
-      "ver": "1.0.18",
-      "imported": true,
-      "files": [
-        ".bin"
-      ],
-      "subMetas": {}
-    },
     "e2349": {
       "importer": "gltf-mesh",
       "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@e2349",
@@ -38,7 +15,7 @@
       "name": "Mesh.mesh",
       "userData": {
         "gltfIndex": 0,
-        "triangleCount": 2456
+        "triangleCount": 968
       },
       "ver": "1.1.1",
       "imported": true,
@@ -63,6 +40,29 @@
       "files": [
         ".bin",
         ".json"
+      ],
+      "subMetas": {}
+    },
+    "f39b2": {
+      "importer": "gltf-animation",
+      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@f39b2",
+      "displayName": "",
+      "id": "f39b2",
+      "name": "Action.animation",
+      "userData": {
+        "gltfIndex": 0,
+        "wrapMode": 2,
+        "sample": 30,
+        "span": {
+          "from": 0,
+          "to": 3.299999952316284
+        },
+        "events": []
+      },
+      "ver": "1.0.18",
+      "imported": true,
+      "files": [
+        ".bin"
       ],
       "subMetas": {}
     },
@@ -104,16 +104,16 @@
     "imageMetas": [],
     "animationImportSettings": [
       {
-        "name": "Armature|CINEMA_4D_Main|Layer0",
+        "name": "Action",
         "duration": 3.299999952316284,
         "fps": 30,
         "splits": [
           {
-            "name": "Armature|CINEMA_4D_Main|Layer0",
+            "name": "Action",
             "from": 0,
             "to": 3.299999952316284,
             "wrapMode": 2,
-            "previousId": "56450"
+            "previousId": "f39b2"
           }
         ]
       }

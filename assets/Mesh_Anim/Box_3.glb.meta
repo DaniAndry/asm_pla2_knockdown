@@ -7,12 +7,12 @@
     "__original-animation-0.bin"
   ],
   "subMetas": {
-    "b7142": {
+    "eccdb": {
       "importer": "gltf-mesh",
-      "uuid": "a4566f41-35c8-4dad-875a-b06546f46b91@b7142",
+      "uuid": "a4566f41-35c8-4dad-875a-b06546f46b91@eccdb",
       "displayName": "",
-      "id": "b7142",
-      "name": "Mesh.002.mesh",
+      "id": "eccdb",
+      "name": "1_2.mesh",
       "userData": {
         "gltfIndex": 0,
         "triangleCount": 6165
@@ -37,7 +37,7 @@
         "sample": 30,
         "span": {
           "from": 0,
-          "to": 3.299999952316284
+          "to": 2.633333444595337
         },
         "events": []
       },
@@ -87,13 +87,13 @@
     "animationImportSettings": [
       {
         "name": "Action",
-        "duration": 3.299999952316284,
+        "duration": 2.633333444595337,
         "fps": 30,
         "splits": [
           {
             "name": "Action",
             "from": 0,
-            "to": 3.299999952316284,
+            "to": 2.633333444595337,
             "wrapMode": 2,
             "previousId": "f39b2"
           }
@@ -120,7 +120,7 @@
     },
     "assetFinder": {
       "meshes": [
-        "a4566f41-35c8-4dad-875a-b06546f46b91@b7142"
+        "a4566f41-35c8-4dad-875a-b06546f46b91@eccdb"
       ],
       "skeletons": [
         "a4566f41-35c8-4dad-875a-b06546f46b91@a30e0"

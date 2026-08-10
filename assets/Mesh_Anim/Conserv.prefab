@@ -382,6 +382,14 @@
     "hitSoundCooldown": 0.12,
     "wakeRadius": 5,
     "projectileTag": "Projectile",
+    "projectileGroup": 0,
+    "floorGroup": 0,
+    "animDurationMinFactor": 0.15,
+    "animDurationMaxFactor": 1,
+    "maxDestroyLifeDuration": 0.55,
+    "fadeDestroyDuration": 0.2,
+    "liteDestroyLifeDuration": 0.22,
+    "useMaterialFade": false,
     "_id": ""
   },
   {

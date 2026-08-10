@@ -15,7 +15,7 @@
       "name": "Mesh.mesh",
       "userData": {
         "gltfIndex": 0,
-        "triangleCount": 4428
+        "triangleCount": 1728
       },
       "ver": "1.1.1",
       "imported": true,
@@ -55,7 +55,7 @@
         "sample": 30,
         "span": {
           "from": 0,
-          "to": 3.299999952316284
+          "to": 1.6333333253860474
         },
         "events": []
       },
@@ -105,13 +105,13 @@
     "animationImportSettings": [
       {
         "name": "Action",
-        "duration": 3.299999952316284,
+        "duration": 1.6333333253860474,
         "fps": 30,
         "splits": [
           {
             "name": "Action",
             "from": 0,
-            "to": 3.299999952316284,
+            "to": 1.6333333253860474,
             "wrapMode": 2,
             "previousId": "f39b2"
           }
