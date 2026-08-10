@@ -13,7 +13,7 @@
       "y": -15
     },
     "sleepThreshold": 0.15,
-    "maxSubSteps": 3
+    "maxSubSteps": 5
   },
   "general": {
     "designResolution": {

@@ -222,6 +222,20 @@
       "scenes": [
         "ebcdbec3-8f5c-4393-a364-0016c0f9dc66@ef220"
       ]
+    },
+    "meshOptimize": {
+      "enable": true
+    },
+    "meshSimplify": {
+      "enable": true,
+      "targetRatio": 0.61,
+      "errorRate": 0.6,
+      "autoErrorRate": true,
+      "lockBoundary": true
+    },
+    "meshCompress": {
+      "enable": true,
+      "compress": true
     }
   }
 }

@@ -133,7 +133,7 @@ export class ProjectileCCD extends Component {
         const handler = otherCollider.getComponent(UniversalCollisionHandler);
         if (handler && !handler.isDestroyed) {
             const mass = isValid(this.rb) ? this.rb.mass : this.hitMassFallback;
-            handler.applyExternalHit(speed, mass);
+            handler.applyExternalHit(speed, mass, _vel);
         }
     }
 }

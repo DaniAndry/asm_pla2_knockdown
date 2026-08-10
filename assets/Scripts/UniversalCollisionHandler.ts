@@ -42,8 +42,20 @@ export class UniversalCollisionHandler extends Component {
     @property({ type: CCFloat }) impactDamageFactor: number = 1;
     @property({ type: CCFloat }) minDamageSpeed: number = 0.5;
 
-    @property({ tooltip: 'Использовать систему HP' })
+    @property({ tooltip: 'ВКЛ = урон/ломание от ударов (снаряд и т.п.). ВЫКЛ = ломается только об Floor' })
     useHealthSystem: boolean = true;
+
+    @property({
+        type: CCFloat,
+        tooltip: 'Множитель impulse от снаряда, когда Use Health System ВЫКЛ'
+    })
+    noHealthHitImpulseScale: number = 0.35;
+
+    @property({
+        type: CCFloat,
+        tooltip: 'Мин. доля Y в направлении knock (чтобы удар не уходил только вверх по нормали стека)'
+    })
+    noHealthHitForwardBias: number = 0.2;
 
     @property({ tooltip: 'Название объекта пола для уничтожения с задержкой' })
     floorObjectName: string = 'Floor';
@@ -189,12 +201,25 @@ export class UniversalCollisionHandler extends Component {
         if (now - this.lastHitTime < 0.1) return;
         this.lastHitTime = now;
 
-        if (this.isProjectile(otherCollider)) {
+        const isProj = this.isProjectile(otherCollider);
+        if (isProj) {
             SoundManager.notifyHit();
             this.playHitSound();
         }
 
-        if (!this.useHealthSystem || !isValid(this.rb)) return;
+        if (!isValid(this.rb)) return;
+
+        // Без HP: снаряд не ломает, но даёт ручной knock, иначе стек только подпрыгивает
+        if (!this.useHealthSystem) {
+            if (isProj) {
+                const otherRb = otherCollider.attachedRigidBody;
+                if (isValid(otherRb)) {
+                    otherRb.getLinearVelocity(_velB);
+                    this.applyNoHealthProjectileKnock(_velB, _velB.length(), otherRb.mass);
+                }
+            }
+            return;
+        }
 
         const otherRb = otherCollider.attachedRigidBody;
         if (!isValid(otherRb)) return;
@@ -213,8 +238,11 @@ export class UniversalCollisionHandler extends Component {
         }
     }
 
-    /** Урон, пришедший от sweep-проверки ProjectileCCD (движок коллизию пропустил) */
-    public applyExternalHit(impactSpeed: number, otherMass: number) {
+    /**
+     * Урон/knock от sweep ProjectileCCD (движок коллизию мог пропустить).
+     * hitDir — желательно скорость снаряда.
+     */
+    public applyExternalHit(impactSpeed: number, otherMass: number, hitDir?: Vec3) {
         if (this.isDestroyed) return;
 
         const now = director.getTotalTime() * 0.001;
@@ -224,13 +252,55 @@ export class UniversalCollisionHandler extends Component {
         SoundManager.notifyHit();
         this.playHitSound();
 
-        if (!this.useHealthSystem) return;
+        if (!this.useHealthSystem) {
+            if (hitDir) {
+                this.applyNoHealthProjectileKnock(hitDir, impactSpeed, otherMass);
+            }
+            return;
+        }
+
         if (impactSpeed < this.minDamageSpeed) return;
 
         const mass = isValid(this.rb) ? this.rb.mass : 1;
         const impactForce = impactSpeed * (mass + otherMass) * 0.5;
         if (impactForce > this.damageThreshold) {
             this.applyDamage(impactForce * this.impactDamageFactor);
+        }
+    }
+
+    /** Сдвиг объекта снарядом без HP-урона */
+    private applyNoHealthProjectileKnock(dir: Vec3, speed: number, otherMass: number) {
+        if (!isValid(this.rb) || !this.rb.enabled || !this.rb.isDynamic) return;
+        if (speed < this.minDamageSpeed * 0.25) return;
+
+        const lenSqr = dir.lengthSqr();
+        if (lenSqr < 1e-8) return;
+
+        const invLen = 1 / Math.sqrt(lenSqr);
+        _impulse.set(dir.x * invLen, dir.y * invLen, dir.z * invLen);
+
+        // Тянем вектор к горизонтали (XZ снаряда), чтобы не оставался чистый подскок вверх
+        const bias = Math.max(0, Math.min(1, this.noHealthHitForwardBias));
+        const flatLen = Math.sqrt(_impulse.x * _impulse.x + _impulse.z * _impulse.z);
+        if (flatLen > 1e-6 && bias > 0) {
+            const fx = _impulse.x / flatLen;
+            const fz = _impulse.z / flatLen;
+            _impulse.x = _impulse.x * (1 - bias) + fx * bias;
+            _impulse.y = _impulse.y * (1 - bias);
+            _impulse.z = _impulse.z * (1 - bias) + fz * bias;
+            const n = _impulse.length();
+            if (n > 1e-6) _impulse.multiplyScalar(1 / n);
+        }
+
+        // Сила от скорости/массы снаряда, не от массы всей башни
+        const strength = Math.max(speed, 1) * Math.max(otherMass, 0.2) * this.noHealthHitImpulseScale;
+        _impulse.multiplyScalar(strength);
+
+        try {
+            this.rb.wakeUp();
+            this.rb.applyImpulse(_impulse);
+        } catch {
+            // RB ещё не готов
         }
     }
 
@@ -270,6 +340,9 @@ export class UniversalCollisionHandler extends Component {
     }
 
     applyDamage(amount: number) {
+        // Без HP-системы снаряды/удары не ломают — только Floor через scheduleDestroyFromFloor
+        if (!this.useHealthSystem) return;
+
         this.health -= amount;
         if (this.health <= 0 || amount > this.destroyThreshold) {
             this.destroySelf();
@@ -290,8 +363,17 @@ export class UniversalCollisionHandler extends Component {
 
         this.node.getWorldPosition(_tmpPos);
 
+        // Сразу гасим все коллайдеры — без новых столкновений во время анимации
+        const colliders = this.node.getComponentsInChildren(Collider);
+        for (const c of colliders) {
+            if (isValid(c)) c.enabled = false;
+        }
+
         if (isValid(this.rb)) {
             UniversalCollisionHandler.liveBodies.delete(this.rb);
+            // Движение (падение) оставляем, вращение фиксируем
+            this.rb.setAngularVelocity(Vec3.ZERO);
+            this.rb.angularFactor = new Vec3(0, 0, 0);
         }
         if (isValid(this.collider)) {
             this.collider.off('onCollisionEnter', this.onCollisionEnter, this);
