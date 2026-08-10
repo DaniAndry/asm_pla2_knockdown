@@ -7,29 +7,6 @@
     "__original-animation-0.bin"
   ],
   "subMetas": {
-    "f39b2": {
-      "importer": "gltf-animation",
-      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@f39b2",
-      "displayName": "",
-      "id": "f39b2",
-      "name": "Action.animation",
-      "userData": {
-        "gltfIndex": 0,
-        "wrapMode": 2,
-        "sample": 30,
-        "span": {
-          "from": 0,
-          "to": 3.299999952316284
-        },
-        "events": []
-      },
-      "ver": "1.0.18",
-      "imported": true,
-      "files": [
-        ".bin"
-      ],
-      "subMetas": {}
-    },
     "e2349": {
       "importer": "gltf-mesh",
       "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@e2349",
@@ -63,6 +40,29 @@
       "files": [
         ".bin",
         ".json"
+      ],
+      "subMetas": {}
+    },
+    "f39b2": {
+      "importer": "gltf-animation",
+      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@f39b2",
+      "displayName": "",
+      "id": "f39b2",
+      "name": "Action.animation",
+      "userData": {
+        "gltfIndex": 0,
+        "wrapMode": 2,
+        "sample": 30,
+        "span": {
+          "from": 0,
+          "to": 3.299999952316284
+        },
+        "events": []
+      },
+      "ver": "1.0.18",
+      "imported": true,
+      "files": [
+        ".bin"
       ],
       "subMetas": {}
     },
