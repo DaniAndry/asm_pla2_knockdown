@@ -149,6 +149,21 @@
       "scenes": [
         "6a8be830-572a-4de6-9a47-8a97d4c11da8@b88d2"
       ]
+    },
+    "meshSimplify": {
+      "enable": true,
+      "targetRatio": 0.7,
+      "autoErrorRate": true,
+      "lockBoundary": true,
+      "errorRate": 0.7
+    },
+    "meshCompress": {
+      "enable": true,
+      "compress": true
+    },
+    "meshOptimize": {
+      "enable": true,
+      "overdraw": true
     }
   }
 }

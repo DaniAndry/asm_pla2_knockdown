@@ -7,8 +7,13 @@
     }
   ],
   "physics": {
-    "fixedTimeStep": 0.0333333,
-    "maxSubSteps": 1
+    "fixedTimeStep": 0.0166667,
+    "autoSimulation": true,
+    "gravity": {
+      "y": -15
+    },
+    "sleepThreshold": 0.15,
+    "maxSubSteps": 3
   },
   "general": {
     "designResolution": {

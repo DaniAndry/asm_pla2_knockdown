@@ -2,7 +2,7 @@ import {
     _decorator, Component, Node, Vec3, Vec2, Camera, RigidBody,
     input, Input, EventTouch, CCFloat, Quat,
     screen, MeshRenderer,
-    PhysicsSystem, Animation, AnimationClip, Collider
+    PhysicsSystem, Animation, AnimationClip, Collider, isValid
 } from 'cc';
 import { LevelSwitcher } from './LevelSwitcher';
 import { TrajectoryDrawer3D } from './TrajectoryDrawer3D';
@@ -40,10 +40,10 @@ export class CannonController extends Component {
 
     private hasLaunched = false;
     private projectile: Node = null;
-    private isPhysicsEnabled = false;
-    /** После первого выстрела физика больше не замораживается до смены уровня */
+    /** После первого клика физика больше не усыпляется до смены уровня */
     private physicsUnlocked = false;
-    private settleCallback: (() => void) | null = null;
+    /** Инвалидирует отложенный sleep после settle */
+    private settleToken: number = 0;
     private _trajectoryDrawerComponent: TrajectoryDrawer3D = null;
     private initialProjectilePosition: Vec3 = new Vec3();
     private targetClickPoint: Vec2 = null;
@@ -89,9 +89,9 @@ export class CannonController extends Component {
         document.removeEventListener('visibilitychange', this._onVisibilityChange);
         window.removeEventListener('blur', this._onWindowBlur);
 
-        this.clearSettleCallback();
+        this.settleToken++;
         this.unscheduleAllCallbacks();
-        this.enablePhysics();
+        this.ensurePhysicsWorldEnabled();
     }
 
     public setProjectile(projectile: Node) {
@@ -146,7 +146,6 @@ export class CannonController extends Component {
         // Разблокируем аудио на жесте прицеливания/выстрела
         SoundManager.markFirstTouch();
 
-        if (!this.projectile || !this.projectile.isValid) return;
         const touch = event.getLocation();
 
         if (!this.allowFullScreenControl) {
@@ -154,6 +153,12 @@ export class CannonController extends Component {
             const normalizedX = touch.x / screenWidth;
             if (normalizedX < this.controlMinX || normalizedX > this.controlMaxX) return;
         }
+
+        // Физику включаем сразу по клику — не ждём успешного launchProjectile
+        // (иначе при отсутствии снаряда / гонке settle стек остаётся замороженным)
+        this.unlockPhysicsForGameplay();
+
+        if (!this.projectile || !this.projectile.isValid) return;
 
         this.targetClickPoint = touch;
         this.aimAtScreenPoint(touch, event);
@@ -287,55 +292,88 @@ export class CannonController extends Component {
         node.children.forEach(child => this.enableMeshesRecursively(child));
     }
 
-    private clearSettleCallback() {
-        if (this.settleCallback) {
-            this.unschedule(this.settleCallback);
-            this.settleCallback = null;
-        }
-    }
-
     /**
-     * Дать стеку коротко осесть, затем заморозить физику до первого выстрела.
-     * После выстрела физика остаётся включённой до смены уровня.
+     * Стек оседает settleDuration, затем тела sleep (без PhysicsSystem.enable=false
+     * и без KINEMATIC — оба способа ломали физику).
+     * По клику: мир включён, stuck KINEMATIC чиним, wakeUp.
      */
     private beginPreShotPhysicsHold() {
-        this.clearSettleCallback();
         this.physicsUnlocked = false;
         SoundManager.disableHits();
-        this.enablePhysics();
+        this.ensurePhysicsWorldEnabled();
+        this.restoreGameplayBodies();
 
+        const token = ++this.settleToken;
         const duration = Math.max(0, this.settleDuration);
         if (duration <= 0) {
-            this.disablePhysics();
+            this.sleepGameplayBodies();
             return;
         }
 
-        this.settleCallback = () => {
-            this.settleCallback = null;
-            if (!this.physicsUnlocked) {
-                this.disablePhysics();
-            }
-        };
-        this.scheduleOnce(this.settleCallback, duration);
+        this.scheduleOnce(() => {
+            if (token !== this.settleToken || this.physicsUnlocked) return;
+            this.sleepGameplayBodies();
+        }, duration);
     }
 
-    /** Первый выстрел / геймплей — физика больше не отключается до reset уровня */
+    /** Первый клик / выстрел — физика активна до смены уровня */
     private unlockPhysicsForGameplay() {
         this.physicsUnlocked = true;
+        this.settleToken++;
         SoundManager.enableHits();
-        this.clearSettleCallback();
-        this.enablePhysics();
+        this.ensurePhysicsWorldEnabled();
+        this.restoreGameplayBodies();
     }
 
-    private disablePhysics() {
+    private ensurePhysicsWorldEnabled() {
         const physicsSystem = PhysicsSystem.instance;
-        if (physicsSystem) physicsSystem.enable = false;
-        this.isPhysicsEnabled = false;
+        if (!physicsSystem) return;
+        // autoSimulation:false в project settings полностью останавливает мир —
+        // снаряд не летит, стек не падает. Форсируем оба флага.
+        physicsSystem.enable = true;
+        physicsSystem.autoSimulation = true;
     }
 
-    private enablePhysics() {
-        const physicsSystem = PhysicsSystem.instance;
-        if (physicsSystem) physicsSystem.enable = true;
-        this.isPhysicsEnabled = true;
+    /** Коробки: useGravity + active. Снаряды (kinematic, без gravity) не трогаем. */
+    private forEachGameplayBody(fn: (rb: RigidBody) => void) {
+        const scene = this.node.scene;
+        if (!isValid(scene)) return;
+
+        const bodies = scene.getComponentsInChildren(RigidBody);
+        for (const rb of bodies) {
+            if (!isValid(rb) || !rb.enabled) continue;
+            if (!rb.node?.activeInHierarchy) continue;
+            if (!rb.useGravity) continue;
+            fn(rb);
+        }
+    }
+
+    private sleepGameplayBodies() {
+        this.forEachGameplayBody((rb) => {
+            try {
+                if (!(rb as any)._isInitialized) return;
+                rb.setLinearVelocity(Vec3.ZERO);
+                rb.setAngularVelocity(Vec3.ZERO);
+                rb.sleep();
+            } catch {
+                // RB ещё не готов
+            }
+        });
+    }
+
+    private restoreGameplayBodies() {
+        this.forEachGameplayBody((rb) => {
+            try {
+                // Восстановление после сломанного KINEMATIC-freeze
+                if (rb.type !== RigidBody.Type.DYNAMIC) {
+                    rb.type = RigidBody.Type.DYNAMIC;
+                }
+                if ((rb as any)._isInitialized) {
+                    rb.wakeUp();
+                }
+            } catch {
+                // RB ещё не готов
+            }
+        });
     }
 }

@@ -1309,7 +1309,7 @@
         "__id__": 3458
       }
     ],
-    "_active": true,
+    "_active": false,
     "_components": [
       {
         "__id__": 3466
@@ -49666,7 +49666,7 @@
     "destructiblesParent": {
       "__id__": 1
     },
-    "maxProjectiles": 10,
+    "maxProjectiles": 30,
     "levelNumber": 1,
     "scoreManager": null,
     "mainCamera": null,
@@ -49687,7 +49687,6 @@
       "__id__": 0
     },
     "fileId": "47Y4Qh9FNBAYozLpPoCBIH",
-    "instance": null,
     "targetOverrides": null,
     "nestedPrefabInstanceRoots": [
       {

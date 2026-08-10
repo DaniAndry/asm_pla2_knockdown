@@ -12,7 +12,7 @@
             "_value": true
           },
           "gfx-webgl2": {
-            "_value": false
+            "_value": true
           },
           "gfx-webgpu": {
             "_value": false
@@ -104,10 +104,10 @@
             "_value": true
           },
           "profiler": {
-            "_value": false
+            "_value": true
           },
           "occlusion-query": {
-            "_value": true
+            "_value": false
           },
           "geometry-renderer": {
             "_value": false
@@ -140,7 +140,7 @@
             "_value": false
           },
           "light-probe": {
-            "_value": true
+            "_value": false
           },
           "tiled-map": {
             "_value": false
@@ -201,13 +201,13 @@
           "custom-pipeline",
           "dragon-bones",
           "gfx-webgl",
+          "gfx-webgl2",
           "graphics",
-          "light-probe",
           "meshopt",
-          "occlusion-query",
           "particle",
           "physics-cannon",
           "primitive",
+          "profiler",
           "skeletal-animation",
           "tween",
           "ui",
