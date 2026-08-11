@@ -26,7 +26,8 @@ export class FloorCollisionDestroyer extends Component {
 
     onCollisionEnter(event: ICollisionEvent) {
         const otherNode = event.otherCollider.node;
-        const handler = otherNode.getComponent(UniversalCollisionHandler);
+        const handler = otherNode.getComponent(UniversalCollisionHandler)
+            || otherNode.getComponentInParent(UniversalCollisionHandler);
 
         if (handler) {
             handler.scheduleDestroyFromFloor();

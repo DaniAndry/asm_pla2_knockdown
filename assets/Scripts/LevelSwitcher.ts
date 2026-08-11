@@ -67,6 +67,7 @@ export class LevelSwitcher extends Component {
     private isFinished: boolean = false;
     private isSwitching: boolean = false;
     private isLoseShown: boolean = false;
+    private pendingNextLevel: boolean = false;
     private tutorial: Tutorial | null = null;
 
     /** Сколько раз уже нажали TryAgain за сессию (переживает reload сцены) */
@@ -76,6 +77,8 @@ export class LevelSwitcher extends Component {
 
     private readonly PROGRESS_INCREMENT_PER_LEVEL: number = 0.3;
     private readonly MAX_PROGRESS_FILL: number = 0.9;
+
+    private pendingNextLevel: boolean = false;
 
     public getCurrentLevelIndex(): number {
         return this.currentLevelIndex;
@@ -135,6 +138,12 @@ export class LevelSwitcher extends Component {
     }
 
     private onRequestNextLevel() {
+        // Не теряем next, если пришёл во время анимации смены уровня
+        if (this.isFinished || this.isLoseShown) return;
+        if (this.isSwitching) {
+            this.pendingNextLevel = true;
+            return;
+        }
         this.switchToNextLevel();
     }
 
@@ -144,8 +153,13 @@ export class LevelSwitcher extends Component {
 
     /** Победа на уровне → следующий или финиш */
     public switchToNextLevel() {
-        if (this.isFinished || this.isSwitching || this.isLoseShown) return;
+        if (this.isFinished || this.isLoseShown) return;
+        if (this.isSwitching) {
+            this.pendingNextLevel = true;
+            return;
+        }
         this.isSwitching = true;
+        this.pendingNextLevel = false;
 
         const nextIndex = this.currentLevelIndex + 1;
 
@@ -157,6 +171,17 @@ export class LevelSwitcher extends Component {
             } else {
                 this.isFinished = true;
                 this.showFinishScreen();
+            }
+
+            // Дожимаем отложенный next (например пустой уровень успел победить)
+            if (this.pendingNextLevel && !this.isFinished && !this.isLoseShown) {
+                this.pendingNextLevel = false;
+                this.scheduleOnce(() => {
+                    const lm = this.levels[this.currentLevelIndex]?.getComponent(LevelManager);
+                    if (lm && lm.isComplete()) {
+                        this.switchToNextLevel();
+                    }
+                }, 0.2);
             }
         }, 0.5);
     }
@@ -190,6 +215,14 @@ export class LevelSwitcher extends Component {
             if (levelManager) {
                 levelManager.startLevel();
             }
+            // Пустой уровень: победа может прийти сразу — подстрахуем переход на finish
+            this.scheduleOnce(() => {
+                if (this.isFinished || this.isSwitching || this.isLoseShown) return;
+                const lm = this.levels[this.currentLevelIndex]?.getComponent(LevelManager);
+                if (lm && lm.isComplete()) {
+                    this.switchToNextLevel();
+                }
+            }, 0.6);
         }
 
         if (this.tutorial) {

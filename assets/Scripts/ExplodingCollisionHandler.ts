@@ -31,11 +31,11 @@ export class ImpulseOnDestroy extends UniversalCollisionHandler {
     })
     public explosionUplift: number = 0.2;
 
-    destroySelf() {
+    destroySelf(fromFloor: boolean = false) {
         if (this.isDestroyed) return;
 
         this.applyExplosionImpulseManually();
-        super.destroySelf();
+        super.destroySelf(fromFloor);
     }
 
     applyExplosionImpulseManually() {

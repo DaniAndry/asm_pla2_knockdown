@@ -31,6 +31,12 @@ export class LevelManager extends Component {
     @property({ tooltip: 'Задержка перед победой после зачистки (сек)' })
     clearLevelDelay: number = 0.8;
 
+    @property({ tooltip: 'Ниже этой Y объект считается выпавшим и уничтожается' })
+    killY: number = -2.5;
+
+    @property({ tooltip: 'За пределами |X|/|Z| объект считается вылетевшим' })
+    outOfBoundsXZ: number = 22;
+
     private destructibleObjects: UniversalCollisionHandler[] = [];
     private currentProjectileCount: number = 0;
     private isLevelComplete: boolean = false;
@@ -105,6 +111,8 @@ export class LevelManager extends Component {
     public startLevel() {
         this.unschedule(this.emitLevelResult);
         this.unschedule(this.checkLevelCompletion);
+        this.unschedule(this.checkLevelCompletionLate);
+        this.unschedule(this.pollLevelProgress);
 
         this.isLevelStarted = true;
         this.isLevelComplete = false;
@@ -123,6 +131,11 @@ export class LevelManager extends Component {
         if (director.getScene()) {
             director.getScene().emit('level-projectiles-ready', { max: this.maxProjectiles });
         }
+
+        // Пустой уровень (часто Level 3) — победа сразу, не ждать падений
+        this.scheduleOnce(this.pollLevelProgress, 0);
+        this.scheduleOnce(this.pollLevelProgress, 0.25);
+        this.schedule(this.pollLevelProgress, 0.4);
     }
 
     private onProjectileFired() {
@@ -148,7 +161,9 @@ export class LevelManager extends Component {
         }
 
         this.unschedule(this.checkLevelCompletion);
-        this.scheduleOnce(this.checkLevelCompletion, 0.5);
+        this.unschedule(this.checkLevelCompletionLate);
+        this.scheduleOnce(this.checkLevelCompletion, 0.35);
+        this.scheduleOnce(this.checkLevelCompletionLate, 1.5);
     }
 
     private addScoreToManager(points: number) {
@@ -159,8 +174,37 @@ export class LevelManager extends Component {
         }
     }
 
+    /** Периодически: добиваем выпавших + проверяем clear */
+    private pollLevelProgress = () => {
+        if (!this.isLevelActive()) return;
+
+        this.cullOutOfBoundsDestructibles();
+
+        if (this.getRemainingObjectsCount() === 0) {
+            this.completeLevel(true);
+        }
+    };
+
+    private cullOutOfBoundsDestructibles() {
+        const killY = this.killY;
+        const bound = Math.max(5, this.outOfBoundsXZ);
+
+        for (let i = 0; i < this.destructibleObjects.length; i++) {
+            const obj = this.destructibleObjects[i];
+            if (!isValid(obj) || obj.isDestroyed) continue;
+            if (!isValid(obj.node) || !obj.node.activeInHierarchy) continue;
+
+            const p = obj.node.worldPosition;
+            if (p.y < killY || Math.abs(p.x) > bound || Math.abs(p.z) > bound) {
+                obj.forceDestroyOutOfBounds();
+            }
+        }
+    }
+
     private checkLevelCompletion = () => {
         if (!this.isLevelActive()) return;
+
+        this.cullOutOfBoundsDestructibles();
 
         const remaining = this.getRemainingObjectsCount();
         const outOfAmmo = this.currentProjectileCount >= this.maxProjectiles;
@@ -175,12 +219,18 @@ export class LevelManager extends Component {
         }
     };
 
+    private checkLevelCompletionLate = () => {
+        this.checkLevelCompletion();
+    };
+
     private completeLevel(clearedAll: boolean) {
         if (this.isLevelComplete) return;
         this.isLevelComplete = true;
         this.lastClearedAll = clearedAll;
 
         this.unschedule(this.checkLevelCompletion);
+        this.unschedule(this.checkLevelCompletionLate);
+        this.unschedule(this.pollLevelProgress);
         this.unschedule(this.emitLevelResult);
 
         this.node.emit('level-completed', {
@@ -190,7 +240,7 @@ export class LevelManager extends Component {
             projectilesUsed: this.currentProjectileCount
         });
 
-        const delay = clearedAll ? this.clearLevelDelay : this.outOfAmmoDelay > 0 ? 0.4 : 0.4;
+        const delay = clearedAll ? this.clearLevelDelay : 0.4;
         this.scheduleOnce(this.emitLevelResult, delay);
     }
 
@@ -216,7 +266,7 @@ export class LevelManager extends Component {
         for (const obj of this.destructibleObjects) {
             if (!isValid(obj)) continue;
             if (obj.isDestroyed) continue;
-            if (!isValid(obj.node)) continue;
+            if (!isValid(obj.node) || !obj.node.activeInHierarchy) continue;
             count++;
         }
         return count;

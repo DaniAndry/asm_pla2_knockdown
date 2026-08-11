@@ -289,9 +289,9 @@
     },
     "_size": {
       "__type__": "cc.Vec3",
-      "x": 0.010000000707805157,
-      "y": 0.010000000707805157,
-      "z": 0.01001476077362895
+      "x": 1,
+      "y": 1,
+      "z": 1
     },
     "_id": ""
   },
@@ -354,6 +354,8 @@
     "impactDamageFactor": 1,
     "minDamageSpeed": 0.5,
     "useHealthSystem": true,
+    "noHealthHitImpulseScale": 0.1,
+    "noHealthHitForwardBias": 0.1,
     "floorObjectName": "Floor",
     "floorDestroyDelayMin": 0.3,
     "floorDestroyDelayMax": 0.6,
@@ -368,6 +370,20 @@
     "hitSoundCooldown": 0.12,
     "wakeRadius": 5,
     "projectileTag": "Projectile",
+    "projectileGroup": 0,
+    "floorGroup": 0,
+    "animDurationMinFactor": 0.15,
+    "animDurationMaxFactor": 1,
+    "maxDestroyLifeDuration": 0.55,
+    "fadeDestroyDuration": 0.2,
+    "liteDestroyLifeDuration": 0.22,
+    "useMaterialFade": false,
+    "shatterIntoMeshPieces": false,
+    "shatterImpulse": 2.2,
+    "shatterTorque": 4,
+    "shatterPieceMass": 0.35,
+    "shatterLifeDuration": 1.1,
+    "shatterFadeDuration": 0.35,
     "_id": ""
   },
   {

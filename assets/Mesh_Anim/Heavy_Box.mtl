@@ -12,7 +12,6 @@
   "_defines": [
     {
       "USE_TWOSIDE": true,
-      "USE_INSTANCING": true,
       "USE_ALBEDO_MAP": true
     },
     {},

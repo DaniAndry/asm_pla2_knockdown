@@ -130,7 +130,9 @@ export class ProjectileCCD extends Component {
         }
 
         // 2. Наносим урон вручную — onCollisionEnter мог не сработать вовсе
-        const handler = otherCollider.getComponent(UniversalCollisionHandler);
+        const otherNode = otherCollider.node;
+        const handler = otherNode.getComponent(UniversalCollisionHandler)
+            || otherNode.getComponentInParent(UniversalCollisionHandler);
         if (handler && !handler.isDestroyed) {
             const mass = isValid(this.rb) ? this.rb.mass : this.hitMassFallback;
             handler.applyExternalHit(speed, mass, _vel);
