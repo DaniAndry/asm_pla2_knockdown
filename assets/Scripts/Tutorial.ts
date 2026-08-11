@@ -81,11 +81,11 @@ export class Tutorial extends Component {
         this.unschedule(this.showHint);
     }
 
-    /** Старт уровня: сразу показать хинт */
+
     public onLevelReady() {
         if (this.isBlocked) return;
         this.unschedule(this.showHint);
-        // Если уже тапнули — не форсим показ, ждём idle
+
         if (performance.now() - this.lastTouchAtMs < 500) {
             this.armIdle();
             return;
@@ -93,7 +93,7 @@ export class Tutorial extends Component {
         this.showHint();
     }
 
-    /** Lose / finish — полностью выключить */
+
     public setBlocked(blocked: boolean) {
         this.isBlocked = blocked;
         this.unschedule(this.showHint);
@@ -134,7 +134,7 @@ export class Tutorial extends Component {
         if (this.opacity) this.opacity.opacity = 0;
         this.node.setScale(this.baseScale);
         this.node.setRotationFromEuler(0, 0, this.baseEulerZ);
-        // Уводим за экран, чтобы не перехватывать клики при opacity=0
+
         this.node.setPosition(9999, 9999, 0);
     }
 
@@ -256,7 +256,9 @@ export class Tutorial extends Component {
     private findGameCamera(): Camera | null {
         const level = this.getActiveLevelManager();
         if (level && isValid(level.mainCamera)) return level.mainCamera;
-        return Camera.main;
+        return this.node.scene?.getComponentInChildren(Camera)
+            ?? director.getScene()?.getComponentInChildren(Camera)
+            ?? null;
     }
 
     private isPortrait(): boolean {

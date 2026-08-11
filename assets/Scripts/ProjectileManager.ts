@@ -151,7 +151,7 @@ export class ProjectileManager extends Component {
         SoundManager.playOneShot(this.missSoundName);
     }
 
-    /** Убрать снаряд из мира через lifetime после выстрела */
+
     private despawnProjectile(projectile: Node) {
         const idx = this.inFlight.indexOf(projectile);
         if (idx >= 0) this.inFlight.splice(idx, 1);

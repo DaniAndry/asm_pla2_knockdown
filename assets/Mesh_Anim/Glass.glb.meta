@@ -3,9 +3,7 @@
   "importer": "gltf",
   "imported": true,
   "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8",
-  "files": [
-    "__original-animation-0.bin"
-  ],
+  "files": [],
   "subMetas": {
     "e2349": {
       "importer": "gltf-mesh",
@@ -15,7 +13,7 @@
       "name": "Mesh.mesh",
       "userData": {
         "gltfIndex": 0,
-        "triangleCount": 968
+        "triangleCount": 177
       },
       "ver": "1.1.1",
       "imported": true,
@@ -25,15 +23,15 @@
       ],
       "subMetas": {}
     },
-    "6da96": {
+    "80c75": {
       "importer": "gltf-mesh",
-      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@6da96",
+      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@80c75",
       "displayName": "",
-      "id": "6da96",
-      "name": "Mesh.007.mesh",
+      "id": "80c75",
+      "name": "Mesh.001.mesh",
       "userData": {
         "gltfIndex": 1,
-        "triangleCount": 24
+        "triangleCount": 64
       },
       "ver": "1.1.1",
       "imported": true,
@@ -43,40 +41,122 @@
       ],
       "subMetas": {}
     },
-    "f39b2": {
-      "importer": "gltf-animation",
-      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@f39b2",
+    "b7142": {
+      "importer": "gltf-mesh",
+      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@b7142",
       "displayName": "",
-      "id": "f39b2",
-      "name": "Action.animation",
+      "id": "b7142",
+      "name": "Mesh.002.mesh",
       "userData": {
-        "gltfIndex": 0,
-        "wrapMode": 2,
-        "sample": 30,
-        "span": {
-          "from": 0,
-          "to": 3.299999952316284
-        },
-        "events": []
+        "gltfIndex": 2,
+        "triangleCount": 130
       },
-      "ver": "1.0.18",
+      "ver": "1.1.1",
       "imported": true,
       "files": [
-        ".bin"
+        ".bin",
+        ".json"
       ],
       "subMetas": {}
     },
-    "f9d1d": {
-      "importer": "gltf-skeleton",
-      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@f9d1d",
+    "b05e6": {
+      "importer": "gltf-mesh",
+      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@b05e6",
       "displayName": "",
-      "id": "f9d1d",
-      "name": "Armature.skeleton",
+      "id": "b05e6",
+      "name": "Mesh.003.mesh",
       "userData": {
-        "gltfIndex": 0,
-        "jointsLength": 8
+        "gltfIndex": 3,
+        "triangleCount": 140
       },
-      "ver": "1.0.1",
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "b46eb": {
+      "importer": "gltf-mesh",
+      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@b46eb",
+      "displayName": "",
+      "id": "b46eb",
+      "name": "Mesh.004.mesh",
+      "userData": {
+        "gltfIndex": 4,
+        "triangleCount": 139
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "44b97": {
+      "importer": "gltf-mesh",
+      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@44b97",
+      "displayName": "",
+      "id": "44b97",
+      "name": "Mesh.005.mesh",
+      "userData": {
+        "gltfIndex": 5,
+        "triangleCount": 231
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "0c841": {
+      "importer": "gltf-mesh",
+      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@0c841",
+      "displayName": "",
+      "id": "0c841",
+      "name": "Mesh.006.mesh",
+      "userData": {
+        "gltfIndex": 6,
+        "triangleCount": 111
+      },
+      "ver": "1.1.1",
+      "imported": true,
+      "files": [
+        ".bin",
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "e47ba": {
+      "importer": "gltf-material",
+      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@e47ba",
+      "displayName": "",
+      "id": "e47ba",
+      "name": "Mat.1.material",
+      "userData": {
+        "gltfIndex": 0
+      },
+      "ver": "1.0.14",
+      "imported": true,
+      "files": [
+        ".json"
+      ],
+      "subMetas": {}
+    },
+    "5e342": {
+      "importer": "gltf-material",
+      "uuid": "6a8be830-572a-4de6-9a47-8a97d4c11da8@5e342",
+      "displayName": "",
+      "id": "5e342",
+      "name": "Mat.material",
+      "userData": {
+        "gltfIndex": 1
+      },
+      "ver": "1.0.14",
       "imported": true,
       "files": [
         ".json"
@@ -102,22 +182,6 @@
   },
   "userData": {
     "imageMetas": [],
-    "animationImportSettings": [
-      {
-        "name": "Action",
-        "duration": 3.299999952316284,
-        "fps": 30,
-        "splits": [
-          {
-            "name": "Action",
-            "from": 0,
-            "to": 3.299999952316284,
-            "wrapMode": 2,
-            "previousId": "f39b2"
-          }
-        ]
-      }
-    ],
     "lods": {
       "enable": false,
       "hasBuiltinLOD": false,
@@ -139,31 +203,43 @@
     "assetFinder": {
       "meshes": [
         "6a8be830-572a-4de6-9a47-8a97d4c11da8@e2349",
-        "6a8be830-572a-4de6-9a47-8a97d4c11da8@6da96"
+        "6a8be830-572a-4de6-9a47-8a97d4c11da8@80c75",
+        "6a8be830-572a-4de6-9a47-8a97d4c11da8@b7142",
+        "6a8be830-572a-4de6-9a47-8a97d4c11da8@b05e6",
+        "6a8be830-572a-4de6-9a47-8a97d4c11da8@b46eb",
+        "6a8be830-572a-4de6-9a47-8a97d4c11da8@44b97",
+        "6a8be830-572a-4de6-9a47-8a97d4c11da8@0c841"
       ],
-      "skeletons": [
-        "6a8be830-572a-4de6-9a47-8a97d4c11da8@f9d1d"
-      ],
+      "skeletons": [],
       "textures": [],
-      "materials": [],
+      "materials": [
+        "6a8be830-572a-4de6-9a47-8a97d4c11da8@e47ba",
+        "6a8be830-572a-4de6-9a47-8a97d4c11da8@5e342"
+      ],
       "scenes": [
         "6a8be830-572a-4de6-9a47-8a97d4c11da8@b88d2"
       ]
     },
     "meshSimplify": {
       "enable": true,
-      "targetRatio": 0.7,
+      "targetRatio": 0.2,
       "autoErrorRate": true,
       "lockBoundary": true,
-      "errorRate": 0.7
+      "errorRate": 0.2
     },
     "meshCompress": {
       "enable": true,
-      "compress": true
+      "compress": true,
+      "quantize": false
     },
     "meshOptimize": {
       "enable": true,
-      "overdraw": true
+      "overdraw": true,
+      "vertexCache": true,
+      "vertexFetch": true
+    },
+    "meshCluster": {
+      "enable": false
     }
   }
 }

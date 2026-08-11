@@ -18,7 +18,7 @@ export class AdaptiveItem extends Component {
     };
 
     onLoad() {
-        // Сразу выставляем правильный масштаб
+
         this.updateItems();
 
         screen.on('window-resize', this._onResize, this);
@@ -50,8 +50,8 @@ export class AdaptiveItem extends Component {
 
         const visibleSize = view.getVisibleSize();
 
-        // То же самое, что было:
-        // document.body.clientHeight / document.body.clientWidth
+
+
         const a = visibleSize.height / visibleSize.width;
 
         let scale = 1;

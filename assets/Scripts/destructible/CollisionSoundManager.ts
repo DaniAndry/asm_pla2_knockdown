@@ -1,10 +1,6 @@
 import { _decorator, Component, Node, AudioSource, AudioClip, find } from 'cc';
 const { ccclass, property } = _decorator;
 
-/**
- * Менеджер звуков столкновений
- * @deprecated Функциональность теперь включена в UniversalCollisionHandler
- */
 @ccclass('CollisionSoundManager')
 export class CollisionSoundManager extends Component {
     private static _instance: CollisionSoundManager = null;
@@ -20,14 +16,14 @@ export class CollisionSoundManager extends Component {
 
     onLoad() {
         CollisionSoundManager._instance = this;
-        
+
         if (!this.audioSource) {
             this.audioSource = this.getComponent(AudioSource);
             if (!this.audioSource) {
                 this.audioSource = this.addComponent(AudioSource);
             }
         }
-        
+
         console.log('[CollisionSoundManager] Инициализирован');
     }
 

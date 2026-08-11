@@ -2,7 +2,6 @@ import { _decorator, Component, director, find, js, Node } from 'cc';
 
 const { ccclass, executionOrder } = _decorator;
 
-/** Один таргет из window.__PLAYABLE_ITERATION__ (задаётся super-html batch). */
 export type PlayableIterationTarget = {
     nodePath?: string;
     component: string;
@@ -13,12 +12,6 @@ type PlayableIterationPayload = {
     targets?: PlayableIterationTarget[];
 };
 
-/**
- * Единственный «знающий» про playable-batch слой: читает window.__PLAYABLE_ITERATION__
- * и выставляет публичные поля на указанных компонентах. Игровые скрипты (GameSessionController и др.) не трогаем.
- *
- * Повесь на любой узел сцены (например Canvas). executionOrder раньше остальных — чтобы до start() целевых компонентов.
- */
 @ccclass('PlayableBatchOverrideApplier')
 @executionOrder(-100)
 export class PlayableBatchOverrideApplier extends Component {

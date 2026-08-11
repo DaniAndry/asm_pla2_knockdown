@@ -3,6 +3,7 @@ import {
     PhysicsSystem, geometry, isValid, CCFloat,
 } from 'cc';
 import { UniversalCollisionHandler } from './UniversalCollisionHandler';
+import { findComponentInParents } from './NodeUtils';
 
 const { ccclass, property } = _decorator;
 
@@ -14,16 +15,6 @@ const _push = new Vec3();
 const _vel = new Vec3();
 const _ray = new geometry.Ray();
 
-/**
- * Вешается НА ПРЕФАБ СНАРЯДА, рядом с RigidBody.
- *
- * Решает пролёт сквозь объекты «руками»: каждый кадр делает sweep-sphere
- * от прошлой позиции к текущей. Если по пути что-то было — телепортирует
- * снаряд в точку попадания и сам наносит урон.
- *
- * Это работает даже на builtin-физике, где нет нативного CCD,
- * и страхует нативный CCD при просадках FPS.
- */
 @ccclass('ProjectileCCD')
 export class ProjectileCCD extends Component {
     @property({ type: CCFloat, tooltip: 'Радиус снаряда (примерно = радиус его коллайдера)' })
@@ -61,7 +52,7 @@ export class ProjectileCCD extends Component {
         this.hasPrev = false;
     }
 
-    /** Маска = всё, кроме собственной группы снаряда (иначе sweep ловит сам себя) */
+
     private rebuildMask() {
         if (isValid(this.selfCollider)) {
             this.mask = 0xffffffff & ~this.selfCollider.getGroup();
@@ -84,7 +75,7 @@ export class ProjectileCCD extends Component {
         Vec3.subtract(_delta, _cur, _prev);
         const dist = _delta.length();
 
-        // Кадр прошёл меньше собственного радиуса — туннелирование невозможно
+
         if (speed < this.minSpeed || dist <= this.radius * 0.9) {
             _prev.set(_cur);
             return;
@@ -118,7 +109,7 @@ export class ProjectileCCD extends Component {
             return;
         }
 
-        // 1. Возвращаем снаряд в точку контакта — дальше движок доиграет коллизию сам
+
         if (this.correctPosition) {
             Vec3.multiplyScalar(_push, result.hitNormal, this.radius * 1.02);
             Vec3.add(_push, result.hitPoint, _push);
@@ -129,10 +120,9 @@ export class ProjectileCCD extends Component {
             _prev.set(_cur);
         }
 
-        // 2. Наносим урон вручную — onCollisionEnter мог не сработать вовсе
+
         const otherNode = otherCollider.node;
-        const handler = otherNode.getComponent(UniversalCollisionHandler)
-            || otherNode.getComponentInParent(UniversalCollisionHandler);
+        const handler = findComponentInParents(otherNode, UniversalCollisionHandler);
         if (handler && !handler.isDestroyed) {
             const mass = isValid(this.rb) ? this.rb.mass : this.hitMassFallback;
             handler.applyExternalHit(speed, mass, _vel);

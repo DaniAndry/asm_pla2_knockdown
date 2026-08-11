@@ -11,7 +11,7 @@ export class NodeHTML extends Component {
         super_html_playable.set_app_store_url('https://apps.apple.com/us/app/word-association-tiles/id6757710438');
     }
 
-    /** CTA: магазин + game_end. Вызывается со 2-го TryAgain. */
+
     OnClick() {
         this.on_click_download();
     }

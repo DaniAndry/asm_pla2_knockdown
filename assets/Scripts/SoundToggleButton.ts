@@ -14,14 +14,14 @@ export class SoundToggleButton extends Component {
     @property({ type: SpriteFrame })
     soundOffFrame: SpriteFrame = null;
 
-    /** Визуальное состояние кнопки (вкл/выкл) */
+
     private isSoundOn: boolean = true;
 
     onLoad() {
         this.isSoundOn = true;
         this.updateSprite();
 
-        // Только синхронизация UI при ручном mute/unmute — не при init
+
         SoundManager.toggleSoundButtonCB = (muted: boolean) => {
             this.isSoundOn = !muted;
             this.updateSprite();

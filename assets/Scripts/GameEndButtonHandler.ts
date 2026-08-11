@@ -3,7 +3,6 @@ import super_html_playable from './super_html/super_html_playable';
 
 const { ccclass, property } = _decorator;
 
-
 @ccclass('GameEndButtonHandler')
 export class GameEndButtonHandler extends Component {
 
@@ -23,17 +22,15 @@ export class GameEndButtonHandler extends Component {
         super_html_playable.download();
     }
 
-
     onDestroy() {
 
         this.node.off(Node.EventType.TOUCH_END, this.onButtonClick, this);
     }
 
-
     onButtonClick() {
         console.log('Кнопка завершения игры нажата, вызываем super_html_playable.game_end()');
-        
-        // Вызываем метод game_end() из вашего существующего класса
+
+
         super_html_playable.game_end();
     }
 }

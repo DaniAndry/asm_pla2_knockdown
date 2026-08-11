@@ -26,9 +26,7 @@ import { SoundManager } from './SoundManager';
 
 const { ccclass, property } = _decorator;
 
-// Переиспользуемые векторы — ноль аллокаций в горячем пути коллизий
 const _velA = new Vec3();
-const _velB = new Vec3();
 const _rel = new Vec3();
 const _impulse = new Vec3();
 const _tmpPos = new Vec3();
@@ -39,29 +37,10 @@ interface WakeRequest { x: number; y: number; z: number; r2: number; }
 
 @ccclass('UniversalCollisionHandler')
 export class UniversalCollisionHandler extends Component {
-    @property({ type: CCFloat }) health: number = 100;
-    @property({ type: CCFloat }) damageThreshold: number = 1;
-    @property({ type: CCFloat }) destroyThreshold: number = 10;
-    @property({ type: CCFloat }) impactDamageFactor: number = 1;
-    @property({ type: CCFloat }) minDamageSpeed: number = 0.5;
-
-    @property({ tooltip: 'ВКЛ = урон/ломание от ударов (снаряд и т.п.). ВЫКЛ = ломается только об Floor' })
+    @property({
+        tooltip: 'ВКЛ = ломается сразу от попадания снаряда ИЛИ от Floor. ВЫКЛ = ломается только об Floor.'
+    })
     useHealthSystem: boolean = true;
-
-    @property({
-        type: CCFloat,
-        tooltip: 'Множитель impulse от снаряда, когда Use Health System ВЫКЛ'
-    })
-    noHealthHitImpulseScale: number = 0.35;
-
-    @property({
-        type: CCFloat,
-        tooltip: 'Мин. доля Y в направлении knock (чтобы удар не уходил только вверх по нормали стека)'
-    })
-    noHealthHitForwardBias: number = 0.2;
-
-    @property({ tooltip: 'Название объекта пола для уничтожения с задержкой' })
-    floorObjectName: string = 'Floor';
 
     @property({ tooltip: 'Мин. задержка уничтожения при падении на Floor (сек)' })
     floorDestroyDelayMin: number = 0.3;
@@ -95,9 +74,6 @@ export class UniversalCollisionHandler extends Component {
 
     @property({ tooltip: 'Битовая группа снаряда из Collision Matrix. 0 = сравнивать по имени (медленнее)' })
     projectileGroup: number = 0;
-
-    @property({ tooltip: 'Битовая группа пола. 0 = сравнивать по имени' })
-    floorGroup: number = 0;
 
     @property({ type: CCFloat, tooltip: 'Мин. доля длительности анимации уничтожения' })
     animDurationMinFactor: number = 0.15;
@@ -141,7 +117,7 @@ export class UniversalCollisionHandler extends Component {
 
     private rb: RigidBody | null = null;
     private collider: Collider | null = null;
-    /** Кэш детей — getComponentsInChildren на каждый destroy это обход поддерева */
+
     private cachedRenderers: MeshRenderer[] = [];
     private cachedAnims: Animation[] = [];
     private initialScale: Vec3 = new Vec3(1, 1, 1);
@@ -153,17 +129,29 @@ export class UniversalCollisionHandler extends Component {
 
     private static lastGlobalHitSoundTime: number = 0;
     private static liveBodies: Set<RigidBody> = new Set();
+    
+    private static readonly MAX_LINEAR_SPEED: number = 18;
+    private static velocitySafetyRegistered: boolean = false;
+    private static sceneResetRegistered: boolean = false;
+
+    private static readonly MAX_STEP_DISTANCE: number = 6;
+    private static lastGoodPos: Map<RigidBody, Vec3> = new Map();
+
+    // Печатать в консоль причину каждого уничтожения объекта (floor / hit /
+    // outOfBounds / physicsGlitch / unknown) — помогает понять, откуда именно
+    // объект сломался. Можно выключить.
+    public static debugLogDestroy: boolean = true;
 
     private static activeFxCount: number = 0;
     private static readonly MAX_ACTIVE_FX: number = 6;
     private static readonly FADE_STEPS: number = 4;
 
-    // --- Батчер пробуждения соседей ---
+
     private static wakeQueue: WakeRequest[] = [];
     private static wakeScheduled: boolean = false;
     private static readonly MAX_WAKE_REQUESTS: number = 12;
 
-    // --- Пул score-попапов ---
+
     private static scorePool: Node[] = [];
     private static activeScorePopups: number = 0;
     private static readonly MAX_ACTIVE_SCORE_POPUPS: number = 8;
@@ -183,6 +171,29 @@ export class UniversalCollisionHandler extends Component {
         if (isValid(this.rb)) {
             UniversalCollisionHandler.liveBodies.add(this.rb);
         }
+
+        if (!UniversalCollisionHandler.velocitySafetyRegistered) {
+            UniversalCollisionHandler.velocitySafetyRegistered = true;
+            director.on(Director.EVENT_AFTER_PHYSICS, UniversalCollisionHandler.clampAllVelocities);
+        }
+
+        // ВАЖНО: liveBodies/lastGoodPos/wakeQueue/scorePool и т.д. — static,
+        // общие на все инстансы и НЕ привязаны к жизни конкретной сцены.
+        // EVENT_AFTER_PHYSICS-листенер выше регистрируется один раз навсегда
+        // (director переживает рестарт/перезагрузку сцены). Если при
+        // Restart в редакторе где-то в этих static-коллекциях остаётся
+        // "протухшая" ссылка на RigidBody/Node из уже уничтожаемой старой
+        // сцены, а физический шаг успевает сработать в этот момент —
+        // clampAllVelocities()/destroyUnstableBody() может попытаться второй
+        // раз destroy() узел, который движок и так уже разрушает как часть
+        // обычной уборки старой сцены — отсюда "Error 5000: destroy object
+        // twice". Поэтому чистим все static-коллекции ровно один раз перед
+        // запуском КАЖДОЙ новой сцены (EVENT_BEFORE_SCENE_LAUNCH), пока новые
+        // объекты ещё не успели зарегистрироваться в onLoad().
+        if (!UniversalCollisionHandler.sceneResetRegistered) {
+            UniversalCollisionHandler.sceneResetRegistered = true;
+            director.on(Director.EVENT_BEFORE_SCENE_LAUNCH, UniversalCollisionHandler.resetStatics);
+        }
     }
 
     public applyLevelSharedRefs(camera: Camera | null) {
@@ -195,26 +206,28 @@ export class UniversalCollisionHandler extends Component {
         }
         if (isValid(this.rb)) {
             UniversalCollisionHandler.liveBodies.delete(this.rb);
+            UniversalCollisionHandler.lastGoodPos.delete(this.rb);
         }
         this.cachedRenderers.length = 0;
         this.cachedAnims.length = 0;
     }
 
-    // ------------------------------------------------------------------
-    // Коллизии. Порядок проверок — от самой дешёвой к самой дорогой.
-    // ------------------------------------------------------------------
+
+
+
     onCollisionEnter(event: ICollisionEvent) {
         if (this.isDestroyed) return;
 
         const otherCollider = event.otherCollider;
         if (!otherCollider) return;
 
-        if (this.isFloor(otherCollider)) {
-            this.scheduleDestroyFromFloor();
-            return;
-        }
+        // Проверка "это пол?" раньше делал каждый разрушаемый объект сам —
+        // при плотном стеке это лишняя работа на каждое столкновение (а их
+        // может быть десятки в кадр). Теперь за это отвечает один компонент
+        // FloorCollisionDestroyer, повешенный на сам Floor: он сам находит
+        // UniversalCollisionHandler объекта, который в него врезался, и
+        // вызывает scheduleDestroyFromFloor() — см. FloorCollisionDestroyer.ts.
 
-        // Гейт по времени ДО любых getComponent — режет шторм контактов в стеке
         const now = director.getTotalTime() * 0.001;
         if (now - this.lastHitTime < 0.1) return;
         this.lastHitTime = now;
@@ -225,35 +238,19 @@ export class UniversalCollisionHandler extends Component {
             this.playHitSound();
         }
 
-        if (!isValid(this.rb)) return;
+        // Упрощённая логика (без health/порогов урона):
+        // Use Health System ВЫКЛ — ломается ТОЛЬКО об Floor (см.
+        // scheduleDestroyFromFloor/FloorCollisionDestroyer.ts).
+        // Use Health System ВКЛ — ломается сразу от любого попадания снаряда
+        // (плюс по-прежнему может сломаться и об Floor).
+        if (!this.useHealthSystem) return;
+        if (!isProj) return;
+        if (!SoundManager.hitsEnabled) return; // не считаем удары во время усадки стека на старте уровня
 
-        // Без HP: снаряд НЕ ломает и НЕ разбрасывает вручную — только звук.
-        // Иначе applyImpulse валит стек, объекты падают на пол и «ломаются от снаряда».
-        if (!this.useHealthSystem) {
-            return;
-        }
-
-        const otherRb = otherCollider.attachedRigidBody;
-        if (!isValid(otherRb)) return;
-
-        this.rb.getLinearVelocity(_velA);
-        otherRb.getLinearVelocity(_velB);
-        Vec3.subtract(_rel, _velA, _velB);
-
-        const speedSqr = _rel.lengthSqr();
-        if (speedSqr < this.minDamageSpeed * this.minDamageSpeed) return;
-
-        const speed = Math.sqrt(speedSqr);
-        const impactForce = speed * (this.rb.mass + otherRb.mass) * 0.5;
-        if (impactForce > this.damageThreshold) {
-            this.applyDamage(impactForce * this.impactDamageFactor);
-        }
+        this.destroySelf('hit');
     }
 
-    /**
-     * Урон/knock от sweep ProjectileCCD (движок коллизию мог пропустить).
-     * hitDir — желательно скорость снаряда.
-     */
+
     public applyExternalHit(impactSpeed: number, otherMass: number, hitDir?: Vec3) {
         if (this.isDestroyed) return;
 
@@ -264,30 +261,19 @@ export class UniversalCollisionHandler extends Component {
         SoundManager.notifyHit();
         this.playHitSound();
 
-        // Без HP — только звук, без импульса и урона
-        if (!this.useHealthSystem) {
-            return;
-        }
+        // См. комментарий в onCollisionEnter. applyExternalHit всегда
+        // вызывается из ProjectileCCD (sweep-попадание снаряда), так что
+        // проверка "это снаряд?" тут не нужна.
+        if (!this.useHealthSystem) return;
+        if (!SoundManager.hitsEnabled) return;
 
-        if (impactSpeed < this.minDamageSpeed) return;
-
-        const mass = isValid(this.rb) ? this.rb.mass : 1;
-        const impactForce = impactSpeed * (mass + otherMass) * 0.5;
-        if (impactForce > this.damageThreshold) {
-            this.applyDamage(impactForce * this.impactDamageFactor);
-        }
+        this.destroySelf('hit');
     }
 
     private isProjectile(other: Collider): boolean {
         if (this.projectileGroup > 0) return (other.getGroup() & this.projectileGroup) !== 0;
         const n = other.node;
         return isValid(n) && n.name.indexOf(this.projectileTag) >= 0;
-    }
-
-    private isFloor(other: Collider): boolean {
-        if (this.floorGroup > 0) return (other.getGroup() & this.floorGroup) !== 0;
-        const n = other.node;
-        return isValid(n) && n.name === this.floorObjectName;
     }
 
     private playHitSound() {
@@ -302,11 +288,22 @@ export class UniversalCollisionHandler extends Component {
 
     public scheduleDestroyFromFloor() {
         if (this.isDestroyed || this.floorDestroyScheduled) return;
+
+        // Пока идёт первоначальная "усадка" стека под гравитацией (CannonController
+        // держит физику разморожённой settleDuration секунд перед первым выстрелом
+        // и именно на это время выключает звук ударов через SoundManager.disableHits()),
+        // объекты могут задеть Floor чисто из-за исходного перекрытия коллайдеров
+        // на большом уровне — это НЕ игровое попадание. Раньше это всё равно считалось
+        // разрушением, из-за чего часть уровня (особенно 3-й, самый плотный) могла
+        // "само-разрушиться" в первую секунду и уровень засчитывался пройденным.
+        if (!SoundManager.hitsEnabled) return;
+
         this.floorDestroyScheduled = true;
 
-        // Shatter-объекты — сразу при касании пола
+
         if (this.shatterIntoMeshPieces) {
-            this.destroySelf(true);
+            // Шаттеринг запускается СРАЗУ при касании пола, без задержки.
+            this.destroySelf('floor');
             return;
         }
 
@@ -315,46 +312,43 @@ export class UniversalCollisionHandler extends Component {
         const delay = min + Math.random() * (max - min);
 
         this.scheduleOnce(() => {
-            if (!this.isDestroyed) this.destroySelf(true);
+            if (!this.isDestroyed) this.destroySelf('floor');
         }, delay);
     }
 
-    /** Улетел/провалился — считаем уничтоженным для win-check (в т.ч. shatter) */
+
     public forceDestroyOutOfBounds() {
         if (this.isDestroyed) return;
         this.floorDestroyScheduled = true;
-        this.destroySelf(true);
+        this.destroySelf('outOfBounds');
     }
 
-    applyDamage(amount: number) {
-        // Без HP-системы снаряды/удары не ломают — только Floor
-        if (!this.useHealthSystem) return;
-        // Куски-меши тоже только об пол (не от снаряда в воздухе)
-        if (this.shatterIntoMeshPieces) return;
 
-        this.health -= amount;
-        if (this.health <= 0 || amount > this.destroyThreshold) {
-            this.destroySelf(false);
-        }
-    }
-
-    /**
-     * @param fromFloor true = касание Floor (единственный триггер shatter)
-     */
-    destroySelf(fromFloor: boolean = false) {
+    destroySelf(reason: string = 'unknown') {
         if (this.isDestroyed) return;
 
-        // Shatter только с пола
-        if (this.shatterIntoMeshPieces && !fromFloor) return;
+        if (UniversalCollisionHandler.debugLogDestroy) {
+            console.log(`[UniversalCollisionHandler] "${this.node.name}" destroyed. reason=${reason}, useHealthSystem=${this.useHealthSystem}`);
+        }
+
+        // "Вылет за пределы уровня" (killY / outOfBoundsXZ в LevelManager) и
+        // "физический глюк" (телепорт/NaN за один шаг, см. destroyUnstableBody)
+        // — это фоновая уборка, а не игровое разрушение: объект ни во что не
+        // попал. Раньше в этом случае всё равно проигрывался звук удара,
+        // партиклы и score-попап — из-за этого казалось, что объект с
+        // useHealthSystem = false "ломается непонятно от чего".
+        const isCleanupOnly = reason === 'outOfBounds' || reason === 'physicsGlitch';
 
         this.isDestroyed = true;
-        this.scoreValue = ((Math.random() * 6) | 0) + 5;
+        this.scoreValue = isCleanupOnly ? 0 : ((Math.random() * 6) | 0) + 5;
 
         this.node.emit('destroyed', this);
 
-        this.playHitSound();
-        if (this.destructionSoundName && this.destructionSoundName !== this.hitSoundName) {
-            SoundManager.playOneShot(this.destructionSoundName);
+        if (!isCleanupOnly) {
+            this.playHitSound();
+            if (this.destructionSoundName && this.destructionSoundName !== this.hitSoundName) {
+                SoundManager.playOneShot(this.destructionSoundName);
+            }
         }
 
         this.node.getWorldPosition(_tmpPos);
@@ -363,11 +357,40 @@ export class UniversalCollisionHandler extends Component {
             this.collider.off('onCollisionEnter', this.onCollisionEnter, this);
         }
 
-        UniversalCollisionHandler.queueWake(_tmpPos, this.wakeRadius);
-        this.spawnDestructionParticles(_tmpPos);
-        this.spawnScorePopup(`+${this.scoreValue}`);
+        if (!isCleanupOnly) {
+            UniversalCollisionHandler.queueWake(_tmpPos, this.wakeRadius);
+            this.spawnDestructionParticles(_tmpPos);
+            this.spawnScorePopup(`+${this.scoreValue}`);
+        }
 
-        if (this.shatterIntoMeshPieces) {
+        if (isCleanupOnly) {
+            // Тихая уборка (вылет за пределы уровня / физический глюк): без
+            // шаттера на куски — не создаём новые физические тела на объекте,
+            // который и так уже был нестабилен, и без анимации/fade — объект
+            // всё равно должен быть незаметен для игрока.
+            const colliders = this.node.getComponentsInChildren(Collider);
+            for (const c of colliders) {
+                if (isValid(c)) c.enabled = false;
+            }
+            if (isValid(this.rb)) {
+                UniversalCollisionHandler.liveBodies.delete(this.rb);
+                try {
+                    this.rb.setLinearVelocity(Vec3.ZERO);
+                    this.rb.setAngularVelocity(Vec3.ZERO);
+                } catch {
+
+                }
+                this.rb.angularFactor = new Vec3(0, 0, 0);
+            }
+            this.scheduleFinalDestroy(Math.max(0.05, this.liteDestroyLifeDuration));
+            return;
+        }
+
+        // Шаттер на куски — только при разрушении об Floor (см. тултип
+        // shatterIntoMeshPieces). Разрушение от прямого попадания снаряда
+        // (reason='hit') всегда идёт обычным путём — colliders выключаются
+        // и объект проигрывает анимацию/fade уничтожения.
+        if (this.shatterIntoMeshPieces && reason === 'floor') {
             this.shatterMeshPiecesAndFade();
             return;
         }
@@ -386,9 +409,9 @@ export class UniversalCollisionHandler extends Component {
         this.playDestroyAnimationAndFadeOut();
     }
 
-    // ------------------------------------------------------------------
-    // Батчер пробуждения: 1 проход по liveBodies за кадр, тело будится 1 раз
-    // ------------------------------------------------------------------
+
+
+
     private static queueWake(origin: Vec3, radius: number) {
         if (radius <= 0) return;
 
@@ -434,20 +457,118 @@ export class UniversalCollisionHandler extends Component {
                 );
                 rb.applyImpulse(_impulse);
             } catch {
-                // тело ещё не инициализировано
+
             }
         }
 
         queue.length = 0;
     };
 
-    // ------------------------------------------------------------------
-    // Shatter: куски-дети с коллайдерами (без скелетной анимации)
-    // ------------------------------------------------------------------
+
+    // Тело "телепортировалось" за один физический шаг (взрыв решателя) —
+    // раньше мы откатывали его позицию и гасили скорость на месте, но так
+    // объект просто зависал (позиция и скорость обнулены, а новое
+    // столкновение/floor-контакт больше не сгенерируется, потому что ручной
+    // setWorldPosition в обход физики не всегда триггерит свежий contact-enter).
+    // Правильнее считать это тем же самым "вылетом за пределы уровня" и
+    // аккуратно, без каких-либо визуальных эффектов, убрать объект —
+    // так же, как это уже делает cullOutOfBoundsDestructibles в LevelManager.
+    private static destroyUnstableBody(rb: RigidBody) {
+        UniversalCollisionHandler.liveBodies.delete(rb);
+        UniversalCollisionHandler.lastGoodPos.delete(rb);
+
+        const node = rb.node;
+        const handler = node ? node.getComponent(UniversalCollisionHandler) : null;
+
+        if (handler && isValid(handler) && !handler.isDestroyed) {
+            handler.destroySelf('physicsGlitch');
+            return;
+        }
+
+        // Осколок (shatter piece) — у него нет своего UniversalCollisionHandler,
+        // просто гасим физику и прячем узел.
+        try {
+            rb.setLinearVelocity(Vec3.ZERO);
+            rb.setAngularVelocity(Vec3.ZERO);
+        } catch {
+
+        }
+        rb.enabled = false;
+
+        if (node && isValid(node)) {
+            const colliders = node.getComponentsInChildren(Collider);
+            for (let i = 0; i < colliders.length; i++) {
+                if (isValid(colliders[i])) colliders[i].enabled = false;
+            }
+            node.active = false;
+        }
+    }
+
+    // Раз в физический шаг проходим по всем живым динамическим телам и:
+    // 1) лечим NaN/Infinity скорость (иначе объект улетает в никуда, физически
+    //    остаётся "живым" для игровой логики, но визуально пропадает);
+    // 2) клэмпим слишком большую скорость, чтобы не давать нестабильности
+    //    (взрывным impulse-ам при плотных стеках) разгонять тела до абсурда —
+    //    это одна из причин просадки физики и "телепортов" объектов.
+    private static clampAllVelocities = () => {
+        const maxSqr = UniversalCollisionHandler.MAX_LINEAR_SPEED * UniversalCollisionHandler.MAX_LINEAR_SPEED;
+        const maxStepSqr = UniversalCollisionHandler.MAX_STEP_DISTANCE * UniversalCollisionHandler.MAX_STEP_DISTANCE;
+
+        for (const rb of UniversalCollisionHandler.liveBodies) {
+            if (!isValid(rb) || !rb.enabled || !rb.isDynamic) continue;
+            const node = rb.node;
+            if (!node?.activeInHierarchy) continue;
+
+            try {
+                // --- 1. Проверка телепорта позиции за один шаг ---
+                node.getWorldPosition(_tmpPos);
+                const posBad = !Number.isFinite(_tmpPos.x) || !Number.isFinite(_tmpPos.y) || !Number.isFinite(_tmpPos.z);
+
+                const prev = UniversalCollisionHandler.lastGoodPos.get(rb);
+                if (posBad) {
+                    UniversalCollisionHandler.destroyUnstableBody(rb);
+                    continue;
+                }
+
+                if (prev) {
+                    const dx = _tmpPos.x - prev.x;
+                    const dy = _tmpPos.y - prev.y;
+                    const dz = _tmpPos.z - prev.z;
+                    if (dx * dx + dy * dy + dz * dz > maxStepSqr) {
+                        UniversalCollisionHandler.destroyUnstableBody(rb);
+                        continue;
+                    }
+                    prev.set(_tmpPos);
+                } else {
+                    UniversalCollisionHandler.lastGoodPos.set(rb, _tmpPos.clone());
+                }
+
+                // --- 2. Клэмп скорости ---
+                rb.getLinearVelocity(_velA);
+
+                const velBad = !Number.isFinite(_velA.x) || !Number.isFinite(_velA.y) || !Number.isFinite(_velA.z);
+                if (velBad) {
+                    rb.setLinearVelocity(Vec3.ZERO);
+                    rb.setAngularVelocity(Vec3.ZERO);
+                    continue;
+                }
+
+                const speedSqr = _velA.lengthSqr();
+                if (speedSqr > maxSqr && speedSqr > 0) {
+                    _velA.multiplyScalar(UniversalCollisionHandler.MAX_LINEAR_SPEED / Math.sqrt(speedSqr));
+                    rb.setLinearVelocity(_velA);
+                }
+            } catch {
+
+            }
+        }
+    };
+
+
     private shatterMeshPiecesAndFade() {
         const pieces = this.collectShatterPieces();
         if (pieces.length === 0) {
-            // Не нашли куски — fade, не мгновенный hide
+
             if (isValid(this.rb)) {
                 UniversalCollisionHandler.liveBodies.delete(this.rb);
                 this.rb.setAngularVelocity(Vec3.ZERO);
@@ -461,7 +582,7 @@ export class UniversalCollisionHandler extends Component {
             return;
         }
 
-        // Скорость родителя до отключения RB
+
         if (isValid(this.rb)) {
             this.rb.getLinearVelocity(_velA);
             UniversalCollisionHandler.liveBodies.delete(this.rb);
@@ -472,7 +593,7 @@ export class UniversalCollisionHandler extends Component {
             _velA.set(0, 0, 0);
         }
 
-        // Корневые коллайдеры выключаем (целое тело больше не сталкивается)
+
         for (const c of this.node.getComponents(Collider)) {
             if (isValid(c)) c.enabled = false;
         }
@@ -490,8 +611,8 @@ export class UniversalCollisionHandler extends Component {
         const fadeDur = Math.max(0.05, this.shatterFadeDuration);
         const scheduler = director.getScheduler();
 
-        // Заранее выключенные куски = debris; «целый» меш прячем ТОЛЬКО после
-        // успешного reparent (иначе объект визуально пропадает в никуда).
+
+
         const dormant: Node[] = [];
         const living: Node[] = [];
         for (let i = 0; i < pieces.length; i++) {
@@ -503,20 +624,6 @@ export class UniversalCollisionHandler extends Component {
         const toShatter = dormant.length > 0 ? dormant : living;
         const hideLivingAfter = dormant.length > 0;
 
-        // World TRS корня — якорь для кусков, у которых матрица была stale (inactive)
-        this.node.getWorldPosition(_tmpPos);
-        const rootWx = _tmpPos.x;
-        const rootWy = _tmpPos.y;
-        const rootWz = _tmpPos.z;
-        this.node.getWorldRotation(_tmpQuat);
-        const rootQx = _tmpQuat.x;
-        const rootQy = _tmpQuat.y;
-        const rootQz = _tmpQuat.z;
-        const rootQw = _tmpQuat.w;
-        this.node.getWorldScale(_tmpScale);
-        const rootSx = _tmpScale.x;
-        const rootSy = _tmpScale.y;
-        const rootSz = _tmpScale.z;
 
         const spawned: Node[] = [];
 
@@ -524,9 +631,23 @@ export class UniversalCollisionHandler extends Component {
             const piece = toShatter[i];
             if (!isValid(piece)) continue;
 
-            if (!this.reparentShatterPieceToScene(piece, scene, rootWx, rootWy, rootWz, rootQx, rootQy, rootQz, rootQw, rootSx, rootSy, rootSz)) {
-                continue;
-            }
+            // Раньше здесь кусок переносился в scene (setParent) с ручным
+            // восстановлением мирового трансформа (позиция/поворот/масштаб,
+            // плюс NaN-гварды и снэп-бэк при "разрыве" дистанции > 5м) — это
+            // сама по себе тяжёлая операция (включая updateWorldTransform()),
+            // и при массовом одновременном разрушении (когда весь стек разом
+            // падает на пол и десятки объектов шаттерятся в один кадр) именно
+            // она, судя по всему, была причиной "зависания"/визуального
+            // пропадания на кадр и кусков с координатами непонятно откуда.
+            //
+            // Кусок и так уже уничтожается раньше (piece.destroy() в конце
+            // schedulePieceLifetime, через life + fadeDur), чем сам root
+            // (root.destroy() ниже отложен на life + fadeDur + 0.15 — заведомо
+            // позже) — значит, оставлять кусок ребёнком root безопасно для
+            // жизненного цикла. А раз parent не меняется, мировые координаты
+            // куска вообще не сдвигаются никакой ручной математикой — он остаётся
+            // ровно там, где визуально был.
+            piece.active = true;
 
             const pieceRb = this.ensurePieceRigidBody(piece);
             if (!pieceRb) {
@@ -555,8 +676,8 @@ export class UniversalCollisionHandler extends Component {
                 (Math.random() - 0.5) * this.shatterTorque
             );
 
-            // RB после addComponent/reparent ещё без onLoad — импульс на след. кадр
-            // Kick через scene scheduler: не зависит от жизни компонента корня
+
+
             const vx = parentVx;
             const vy = parentVy;
             const vz = parentVz;
@@ -582,7 +703,7 @@ export class UniversalCollisionHandler extends Component {
                     rbRef.applyImpulse(new Vec3(ix, iy, iz));
                     rbRef.setAngularVelocity(new Vec3(tx, ty, tz));
 
-                    // Страховка от solver-взрыва при стартовом overlap
+
                     rbRef.getLinearVelocity(_velA);
                     const maxSpd = 10;
                     if (_velA.lengthSqr() > maxSpd * maxSpd) {
@@ -595,7 +716,7 @@ export class UniversalCollisionHandler extends Component {
             };
             scheduler.schedule(kick, kickTarget, 0, 0, 0, false);
 
-            // Ещё 2 кадра после физики — срезать бешеные скорости от пенетрации
+
             let clampLeft = 2;
             const clampVel = () => {
                 if (!isValid(pieceRef) || !isValid(rbRef) || !rbRef.enabled) return;
@@ -606,7 +727,7 @@ export class UniversalCollisionHandler extends Component {
                         _velA.normalize().multiplyScalar(maxSpd);
                         rbRef.setLinearVelocity(_velA);
                     }
-                } catch { /* ignore */ }
+                } catch {  }
                 clampLeft--;
                 if (clampLeft > 0) {
                     scheduler.schedule(clampVel, kickTarget, 0, 0, 0, false);
@@ -617,15 +738,15 @@ export class UniversalCollisionHandler extends Component {
             spawned.push(piece);
         }
 
-        // Прячем целый меш только когда хотя бы один кусок успешно вышел в сцену
+
         if (hideLivingAfter && spawned.length > 0) {
             for (let i = 0; i < living.length; i++) {
                 if (isValid(living[i])) living[i].active = false;
             }
         }
 
-        // Cleanup НЕ через this.scheduleOnce — при destroy корня колбэки срывались,
-        // осколки оставались в сцене навсегда. Tween на самом piece + scheduler сцены.
+
+
         for (let i = 0; i < spawned.length; i++) {
             this.schedulePieceLifetime(spawned[i], life, fadeDur);
         }
@@ -642,10 +763,10 @@ export class UniversalCollisionHandler extends Component {
         }
     }
 
-    /** Дети с MeshRenderer (включая inactive — куски часто выключены до ломания) */
+
     private collectShatterPieces(): Node[] {
         const pieces: Node[] = [];
-        const renderers = this.node.getComponentsInChildren(MeshRenderer, true);
+        const renderers = this.node.getComponentsInChildren(MeshRenderer);
         for (let i = 0; i < renderers.length; i++) {
             const r = renderers[i];
             if (!isValid(r) || !isValid(r.node)) continue;
@@ -655,94 +776,7 @@ export class UniversalCollisionHandler extends Component {
         return pieces;
     }
 
-    /**
-     * Inactive-ноды имеют stale world-matrix. setParent(..., true) из такого состояния
-     * телепортирует кусок в (0,0,0) / огромный offset — «меш пропал, renderer on».
-     * Якорим к world TRS корня (или валидной матрице куска после activate).
-     */
-    private reparentShatterPieceToScene(
-        piece: Node,
-        scene: Node | null,
-        rootWx: number, rootWy: number, rootWz: number,
-        rootQx: number, rootQy: number, rootQz: number, rootQw: number,
-        rootSx: number, rootSy: number, rootSz: number,
-    ): boolean {
-        if (!isValid(piece)) return false;
 
-        piece.active = true;
-
-        // Коллайдеры не включаем здесь — только ensurePieceRigidBody
-        // (иначе Conserv/Heavy на миг получают все overlapping box'ы)
-
-        try {
-            piece.updateWorldTransform();
-        } catch { /* older runtime */ }
-
-        piece.getWorldPosition(_tmpPos);
-        piece.getWorldRotation(_tmpQuat);
-        piece.getWorldScale(_tmpScale);
-
-        // Если матрица битая/нулевая после inactive — берём TRS корня
-        const posBroken = !Number.isFinite(_tmpPos.x + _tmpPos.y + _tmpPos.z)
-            || (_tmpPos.lengthSqr() < 1e-8 && (rootWx * rootWx + rootWy * rootWy + rootWz * rootWz) > 1e-4);
-        const scaleBroken = !Number.isFinite(_tmpScale.x + _tmpScale.y + _tmpScale.z)
-            || Math.abs(_tmpScale.x) + Math.abs(_tmpScale.y) + Math.abs(_tmpScale.z) < 1e-8;
-
-        if (posBroken) {
-            _tmpPos.set(rootWx, rootWy, rootWz);
-        }
-        if (scaleBroken) {
-            // Куски часто имеют локальный scale ~0.01 относительно nested prefab —
-            // если world scale сломан, ставим разумный от корня
-            _tmpScale.set(
-                Math.max(Math.abs(rootSx), 0.01) * Math.sign(rootSx || 1),
-                Math.max(Math.abs(rootSy), 0.01) * Math.sign(rootSy || 1),
-                Math.max(Math.abs(rootSz), 0.01) * Math.sign(rootSz || 1),
-            );
-        }
-        if (!Number.isFinite(_tmpQuat.x + _tmpQuat.y + _tmpQuat.z + _tmpQuat.w)) {
-            _tmpQuat.set(rootQx, rootQy, rootQz, rootQw);
-        }
-
-        const wpx = _tmpPos.x;
-        const wpy = _tmpPos.y;
-        const wpz = _tmpPos.z;
-        const wqx = _tmpQuat.x;
-        const wqy = _tmpQuat.y;
-        const wqz = _tmpQuat.z;
-        const wqw = _tmpQuat.w;
-        const wsx = _tmpScale.x;
-        const wsy = _tmpScale.y;
-        const wsz = _tmpScale.z;
-
-        if (isValid(scene) && piece.parent !== scene) {
-            piece.setParent(scene, false);
-        }
-
-        _tmpPos.set(wpx, wpy, wpz);
-        _tmpQuat.set(wqx, wqy, wqz, wqw);
-        _tmpScale.set(wsx, wsy, wsz);
-        piece.setWorldPosition(_tmpPos);
-        piece.setWorldRotation(_tmpQuat);
-        piece.setWorldScale(_tmpScale);
-
-        // Sanity: далеко от корня = teleport bug после stale matrix
-        piece.getWorldPosition(_tmpPos);
-        const dx = _tmpPos.x - rootWx;
-        const dy = _tmpPos.y - rootWy;
-        const dz = _tmpPos.z - rootWz;
-        if (dx * dx + dy * dy + dz * dz > 25) {
-            _tmpPos.set(rootWx, rootWy, rootWz);
-            piece.setWorldPosition(_tmpPos);
-        }
-
-        return true;
-    }
-
-    /**
-     * Conserv: scale ~0.01, коллайдеры уже подогнаны в mesh-space — их и включаем.
-     * Heavy: scale ~1, prefab box'ы 1×1 пересекаются → строим box по AABB меша.
-     */
     private ensurePieceRigidBody(piece: Node): RigidBody | null {
         if (!isValid(piece)) return null;
 
@@ -760,7 +794,7 @@ export class UniversalCollisionHandler extends Component {
         const boxes = piece.getComponentsInChildren(BoxCollider);
 
         if (scaleMag < 0.05 && boxes.length > 0) {
-            // Conserv-path: берём самый компактный authored collider
+
             let best = boxes[0];
             let bestVol = Number.POSITIVE_INFINITY;
             for (let i = 0; i < boxes.length; i++) {
@@ -775,7 +809,7 @@ export class UniversalCollisionHandler extends Component {
             best.enabled = true;
             host = best.node;
         } else {
-            // Heavy-path: box по bounds меша, без гигантских prefab-пересечений
+
             let box = piece.getComponent(BoxCollider);
             if (!box) {
                 box = piece.addComponent(BoxCollider);
@@ -819,19 +853,27 @@ export class UniversalCollisionHandler extends Component {
         rb.mass = Math.max(0.05, this.shatterPieceMass);
         rb.linearDamping = 0.35;
         rb.angularDamping = 0.45;
+
+        // ВАЖНО: раньше осколки (shatter pieces) не попадали в liveBodies и
+        // поэтому НЕ были защищены общим клэмпом скорости/NaN (clampAllVelocities)
+        // и не участвовали в queueWake. При плотном уровне и нескольких
+        // одновременных разрушениях именно у осколков чаще всего "взрывалась"
+        // скорость — отсюда куски, улетающие в случайные координаты.
+        UniversalCollisionHandler.liveBodies.add(rb);
         return rb;
     }
 
     private schedulePieceLifetime(piece: Node, life: number, fadeDur: number) {
         if (!isValid(piece)) return;
 
-        // НЕ трогаем материалы: USE_INSTANCING + mainColor.a на shared/instance
-        // делает невидимыми ВСЕ объекты с тем же материалом (баг Level 3).
+
+
         piece.getScale(_tmpScale);
         const sx = _tmpScale.x;
         const sy = _tmpScale.y;
         const sz = _tmpScale.z;
         const fade = { t: 0 };
+        const lockedPos = new Vec3();
 
         tween(fade)
             .delay(life)
@@ -842,13 +884,24 @@ export class UniversalCollisionHandler extends Component {
                     try {
                         pieceRb.setLinearVelocity(Vec3.ZERO);
                         pieceRb.setAngularVelocity(Vec3.ZERO);
-                    } catch { /* ignore */ }
+                    } catch {  }
                     pieceRb.enabled = false;
+                    UniversalCollisionHandler.liveBodies.delete(pieceRb);
+                    UniversalCollisionHandler.lastGoodPos.delete(pieceRb);
                 }
                 const colliders = piece.getComponentsInChildren(Collider);
                 for (let i = 0; i < colliders.length; i++) {
                     if (isValid(colliders[i])) colliders[i].enabled = false;
                 }
+
+                // Пивот у осколков — от исходного разбитого меша, а не от
+                // центра конкретного куска, так что setScale() ниже "тянет"
+                // кусок к этому пивоту при уменьшении. Раньше это выглядело
+                // как будто кусок проваливается в пол ровно в момент
+                // выключения коллайдера — на самом деле он просто съезжал к
+                // своему пивоту во время сжатия. Фиксируем мировую позицию
+                // здесь и удерживаем её каждый кадр, пока идёт fade.
+                piece.getWorldPosition(lockedPos);
             })
             .to(fadeDur, { t: 1 }, {
                 easing: 'quadIn',
@@ -856,6 +909,7 @@ export class UniversalCollisionHandler extends Component {
                     if (!isValid(piece)) return;
                     const k = Math.max(0, 1 - fade.t);
                     piece.setScale(sx * k, sy * k, sz * k);
+                    piece.setWorldPosition(lockedPos);
                 },
             })
             .call(() => {
@@ -864,9 +918,9 @@ export class UniversalCollisionHandler extends Component {
             .start();
     }
 
-    // ------------------------------------------------------------------
-    // FX уничтожения
-    // ------------------------------------------------------------------
+
+
+
     private getRandomAnimDurationFactor(): number {
         const min = Math.min(this.animDurationMinFactor, this.animDurationMaxFactor);
         const max = Math.max(this.animDurationMinFactor, this.animDurationMaxFactor);
@@ -909,10 +963,7 @@ export class UniversalCollisionHandler extends Component {
         }
     }
 
-    /**
-     * Только scale-fade. Material fade запрещён: на Level 3 один destroy
-     * с mainColor.a=0 / transparency ломал GPU instancing и гасил пачку мешей.
-     */
+
     private fadeOutStepped(duration: number) {
         const steps = UniversalCollisionHandler.FADE_STEPS;
         const stepDuration = Math.max(0.01, duration / steps);
@@ -1011,7 +1062,7 @@ export class UniversalCollisionHandler extends Component {
             .start();
     }
 
-    /** Пул + лимит: 100 одновременных Label = 100 draw call'ов и 100 instantiate */
+
     spawnScorePopup(text: string) {
         if (!isValid(this.scorePrefab)) return;
         if (UniversalCollisionHandler.activeScorePopups >= UniversalCollisionHandler.MAX_ACTIVE_SCORE_POPUPS) return;
@@ -1043,7 +1094,9 @@ export class UniversalCollisionHandler extends Component {
         if (isValid(label)) label.string = text;
 
         const billboard = scoreNode.getComponent('BillboardText');
-        const camera = isValid(this.mainCamera) ? this.mainCamera : Camera.main;
+        const camera = isValid(this.mainCamera)
+            ? this.mainCamera
+            : (this.node.scene?.getComponentInChildren(Camera) ?? null);
         if (isValid(billboard) && isValid(camera)) {
             (billboard as any).targetCamera = camera;
         }
@@ -1061,9 +1114,11 @@ export class UniversalCollisionHandler extends Component {
             .start();
     }
 
-    /** Вызывать при смене/перезапуске уровня, иначе статика утечёт между сценами */
+
     public static resetStatics() {
         UniversalCollisionHandler.liveBodies.clear();
+        UniversalCollisionHandler.lastGoodPos.clear();
+        UniversalCollisionHandler.lastGlobalHitSoundTime = 0;
         UniversalCollisionHandler.wakeQueue.length = 0;
         UniversalCollisionHandler.wakeScheduled = false;
         UniversalCollisionHandler.activeFxCount = 0;

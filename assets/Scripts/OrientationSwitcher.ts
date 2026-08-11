@@ -63,7 +63,7 @@ export class OrientationSwitcher extends Component {
         const resolution = isPortrait ? this.portraitResolution : this.landscapeResolution;
         view.setDesignResolutionSize(resolution.width, resolution.height, view.getResolutionPolicy());
 
-        // Установка contentSize на Canvas
+
         if (this.canvasNode) {
             const uiTransform = this.canvasNode.getComponent(UITransform);
             if (uiTransform) {
@@ -71,7 +71,7 @@ export class OrientationSwitcher extends Component {
             }
         }
 
-        // Настройка камеры: позиция и orthoHeight
+
         if (this.mainCameraNode) {
             this.mainCameraNode.setPosition(isPortrait ? this.portraitCameraPosition : this.landscapeCameraPosition);
 
@@ -81,13 +81,13 @@ export class OrientationSwitcher extends Component {
             }
         }
 
-        // Переключение канвасов и бэкграундов в зависимости от ориентации
+
         this.switchOrientationElements(isPortrait);
         view.resizeWithBrowserSize(true);
     }
 
     private switchOrientationElements(isPortrait: boolean) {
-        // Активация/деактивация соответствующих канвасов
+
         if (this.portraitCanvas) {
             this.portraitCanvas.active = isPortrait;
         }
@@ -95,7 +95,7 @@ export class OrientationSwitcher extends Component {
             this.landscapeCanvas.active = !isPortrait;
         }
 
-        // Активация/деактивация соответствующих фонов
+
         if (this.portraitBackground) {
             this.portraitBackground.active = isPortrait;
         }
@@ -103,6 +103,6 @@ export class OrientationSwitcher extends Component {
             this.landscapeBackground.active = !isPortrait;
         }
 
-        // Здесь можно добавить другие элементы, которые нужно переключать в зависимости от ориентации
+
     }
 }

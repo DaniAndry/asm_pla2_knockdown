@@ -1,13 +1,9 @@
 import { _decorator, Component, Node, isValid, director, Camera } from 'cc';
 import { UniversalCollisionHandler } from './UniversalCollisionHandler';
+import { SoundManager } from './SoundManager';
 
 const { ccclass, property } = _decorator;
 
-/**
- * Менеджер уровня — следит за снарядами и разрушаемыми объектами.
- * Победа: все объекты уничтожены → request-next-level
- * Поражение: снаряды кончились, объекты остались → request-lose
- */
 @ccclass('LevelManager')
 export class LevelManager extends Component {
     @property({ type: Node, tooltip: 'Родительский узел со всеми разрушаемыми объектами' })
@@ -75,7 +71,9 @@ export class LevelManager extends Component {
     }
 
     private applySharedRefsToHandlers() {
-        const camera = isValid(this.mainCamera) ? this.mainCamera : Camera.main;
+        const camera = isValid(this.mainCamera)
+            ? this.mainCamera
+            : (this.node.scene?.getComponentInChildren(Camera) ?? null);
         for (const handler of this.destructibleObjects) {
             if (isValid(handler)) {
                 handler.applyLevelSharedRefs(camera);
@@ -132,7 +130,7 @@ export class LevelManager extends Component {
             director.getScene().emit('level-projectiles-ready', { max: this.maxProjectiles });
         }
 
-        // Пустой уровень (часто Level 3) — победа сразу, не ждать падений
+
         this.scheduleOnce(this.pollLevelProgress, 0);
         this.scheduleOnce(this.pollLevelProgress, 0.25);
         this.schedule(this.pollLevelProgress, 0.4);
@@ -174,7 +172,7 @@ export class LevelManager extends Component {
         }
     }
 
-    /** Периодически: добиваем выпавших + проверяем clear */
+
     private pollLevelProgress = () => {
         if (!this.isLevelActive()) return;
 
@@ -189,13 +187,33 @@ export class LevelManager extends Component {
         const killY = this.killY;
         const bound = Math.max(5, this.outOfBoundsXZ);
 
+        // Пока стек ещё "усаживается" под гравитацией на старте уровня
+        // (CannonController держит физику разморожённой settleDuration секунд —
+        // это то же самое время, на которое отключены звуки ударов через
+        // SoundManager.hitsEnabled), объекты из-за исходных перекрытий могут
+        // на мгновение проскочить границы уровня. Раньше это считалось честным
+        // "вылетом" и уничтожало объект — на плотных уровнях (типа 3-го) это
+        // могло разом снести половину уровня и ложно засчитать победу.
+        // NaN/Infinity координаты — это всегда баг физики, чистим в любой момент.
+        const skipSoftBoundsCheck = !SoundManager.hitsEnabled;
+
         for (let i = 0; i < this.destructibleObjects.length; i++) {
             const obj = this.destructibleObjects[i];
             if (!isValid(obj) || obj.isDestroyed) continue;
             if (!isValid(obj.node) || !obj.node.activeInHierarchy) continue;
 
             const p = obj.node.worldPosition;
-            if (p.y < killY || Math.abs(p.x) > bound || Math.abs(p.z) > bound) {
+
+            // Если физика "взорвалась" (NaN/Infinity после нестабильного удара),
+            // сравнения вида `p.y < killY` с NaN ВСЕГДА дают false — объект
+            // никогда не попадёт под очистку, останется в иерархии невидимым
+            // и будет вечно считаться "живым", блокируя завершение уровня.
+            // Поэтому нефинитную позицию тоже считаем выходом за пределы.
+            const isInvalid = !Number.isFinite(p.x) || !Number.isFinite(p.y) || !Number.isFinite(p.z);
+            const isOutOfSoftBounds = !skipSoftBoundsCheck
+                && (p.y < killY || Math.abs(p.x) > bound || Math.abs(p.z) > bound);
+
+            if (isInvalid || isOutOfSoftBounds) {
                 obj.forceDestroyOutOfBounds();
             }
         }

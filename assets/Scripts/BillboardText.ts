@@ -1,10 +1,6 @@
 import { _decorator, Component, Camera, Vec3, isValid } from 'cc';
 const { ccclass, property } = _decorator;
 
-/**
- * Заставляет 3D объект всегда смотреть на камеру (Billboard эффект)
- * Используется для 3D текстовых popup'ов
- */
 @ccclass('BillboardText')
 export class BillboardText extends Component {
     @property({ type: Camera, tooltip: 'Камера на которую смотрит объект' })
@@ -15,7 +11,7 @@ export class BillboardText extends Component {
 
     onLoad() {
         if (this.autoFindCamera && !isValid(this.targetCamera)) {
-            this.targetCamera = Camera.main;
+            this.targetCamera = this.node.scene?.getComponentInChildren(Camera) ?? null;
         }
     }
 

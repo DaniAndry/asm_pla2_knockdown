@@ -12,7 +12,7 @@
             "_value": true
           },
           "gfx-webgl2": {
-            "_value": true
+            "_value": false
           },
           "gfx-webgpu": {
             "_value": false
@@ -42,7 +42,7 @@
             "_value": false
           },
           "graphics": {
-            "_value": true
+            "_value": false
           },
           "ui-skew": {
             "_value": false
@@ -58,7 +58,7 @@
           },
           "physics": {
             "_value": true,
-            "_option": "physics-ammo"
+            "_option": "physics-cannon"
           },
           "physics-ammo": {
             "_value": true,
@@ -107,7 +107,7 @@
             "_value": true
           },
           "occlusion-query": {
-            "_value": false
+            "_value": true
           },
           "geometry-renderer": {
             "_value": false
@@ -131,7 +131,7 @@
             "_value": true
           },
           "websocket": {
-            "_value": true
+            "_value": false
           },
           "websocket-server": {
             "_value": false
@@ -165,7 +165,7 @@
             }
           },
           "dragon-bones": {
-            "_value": true
+            "_value": false
           },
           "marionette": {
             "_value": false
@@ -190,9 +190,7 @@
             "_value": false
           }
         },
-        "flags": {
-          "LOAD_BULLET_MANUALLY": false
-        },
+        "flags": {},
         "includeModules": [
           "2d",
           "3d",
@@ -201,19 +199,16 @@
           "audio",
           "base",
           "custom-pipeline",
-          "dragon-bones",
           "gfx-webgl",
-          "gfx-webgl2",
-          "graphics",
           "meshopt",
+          "occlusion-query",
           "particle",
-          "physics-ammo",
+          "physics-cannon",
           "primitive",
           "profiler",
           "skeletal-animation",
           "tween",
-          "ui",
-          "websocket"
+          "ui"
         ],
         "noDeprecatedFeatures": {
           "value": false,

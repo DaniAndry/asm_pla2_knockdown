@@ -1,50 +1,37 @@
-/**
- * super-html playable adapter
- * @help https://store.cocos.com/app/detail/3657
- * @home https://github.com/magician-f/cocos-playable-demo
- * @author https://github.com/magician-f
- */
+
 export class super_html_playable {
 
     download() {
         console.log("download");
-        //@ts-ignore
+
         window.super_html && super_html.download();
     }
 
     game_end() {
         console.log("game end");
-        //@ts-ignore
+
         window.super_html && super_html.game_end();
     }
 
 
     is_hide_download() {
-        //@ts-ignore
+
         if (window.super_html && super_html.is_hide_download) {
-            //@ts-ignore
+
             return super_html.is_hide_download();
         }
         return false
     }
 
-    /**
-     * 设置商店地址
-     * channel : unity
-     * @param url https://play.google.com/store/apps/details?id=com.rovio.baba&hl=en
-     */
+
     set_google_play_url(url: string) {
-        //@ts-ignore
+
         window.super_html && (super_html.google_play_url = url);
     }
 
-    /**
-    * 设置商店地址
-    * channel : unity
-    * @param url https://apps.apple.com/cy/app/angry-birds-2/id880047117
-    */
+
     set_app_store_url(url: string) {
-        //@ts-ignore
+
         window.super_html && (super_html.appstore_url = url);
     }
 

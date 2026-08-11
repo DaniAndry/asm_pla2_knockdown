@@ -9,7 +9,7 @@ export class Damageable extends Component {
     applyDamage(amount: number) {
         this.health -= amount;
         if (this.health <= 0) {
-            this.node.destroy(); // можно заменить на destroyObject()
+            this.node.destroy();
         }
     }
 }

@@ -70,9 +70,9 @@ export class LevelSwitcher extends Component {
     private pendingNextLevel: boolean = false;
     private tutorial: Tutorial | null = null;
 
-    /** Сколько раз уже нажали TryAgain за сессию (переживает reload сцены) */
+
     private static retryCount: number = 0;
-    /** Уровень, с которого нужно продолжить после reload */
+
     private static resumeLevelIndex: number = 0;
 
     private readonly PROGRESS_INCREMENT_PER_LEVEL: number = 0.3;
@@ -138,7 +138,7 @@ export class LevelSwitcher extends Component {
     }
 
     private onRequestNextLevel() {
-        // Не теряем next, если пришёл во время анимации смены уровня
+
         if (this.isFinished || this.isLoseShown) return;
         if (this.isSwitching) {
             this.pendingNextLevel = true;
@@ -151,7 +151,7 @@ export class LevelSwitcher extends Component {
         this.showLoseScreen();
     }
 
-    /** Победа на уровне → следующий или финиш */
+
     public switchToNextLevel() {
         if (this.isFinished || this.isLoseShown) return;
         if (this.isSwitching) {
@@ -173,7 +173,7 @@ export class LevelSwitcher extends Component {
                 this.showFinishScreen();
             }
 
-            // Дожимаем отложенный next (например пустой уровень успел победить)
+
             if (this.pendingNextLevel && !this.isFinished && !this.isLoseShown) {
                 this.pendingNextLevel = false;
                 this.scheduleOnce(() => {
@@ -186,7 +186,7 @@ export class LevelSwitcher extends Component {
         }, 0.5);
     }
 
-    /** Активация уровня */
+
     activateLevel(index: number) {
         this.isLoseShown = false;
         if (this.loseScreenNode) this.loseScreenNode.active = false;
@@ -200,7 +200,7 @@ export class LevelSwitcher extends Component {
         LevelSwitcher.resumeLevelIndex = index;
         this.updateProgressBar();
         this.playLevelTitleAnimation();
-        // На самом первом уровне до клика не играем — иначе скопом звуки на старте
+
         if (index > 0 || SoundManager.firstTouch) {
             this.playSound(this.levelChangeSoundName);
         }
@@ -215,7 +215,7 @@ export class LevelSwitcher extends Component {
             if (levelManager) {
                 levelManager.startLevel();
             }
-            // Пустой уровень: победа может прийти сразу — подстрахуем переход на finish
+
             this.scheduleOnce(() => {
                 if (this.isFinished || this.isSwitching || this.isLoseShown) return;
                 const lm = this.levels[this.currentLevelIndex]?.getComponent(LevelManager);
@@ -227,7 +227,7 @@ export class LevelSwitcher extends Component {
 
         if (this.tutorial) {
             this.tutorial.setBlocked(false);
-            // Чуть позже settle, чтобы позиция коробок стабилизировалась
+
             this.scheduleOnce(() => this.tutorial?.onLevelReady(), 0.35);
         }
     }
@@ -246,11 +246,7 @@ export class LevelSwitcher extends Component {
         }
     }
 
-    /**
-     * Кнопка Try Again:
-     * 1-й раз — перезапуск текущего уровня
-     * 2-й раз — NodeHTML.OnClick() (магазин)
-     */
+
     public onTryAgainClick() {
         if (LevelSwitcher.retryCount < 1) {
             LevelSwitcher.retryCount++;
@@ -274,7 +270,7 @@ export class LevelSwitcher extends Component {
             return;
         }
 
-        // Fallback: ищем NodeHTML на сцене
+
         const scene = director.getScene();
         const found = scene?.getComponentInChildren(NodeHTML);
         if (found) {

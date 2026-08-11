@@ -31,11 +31,11 @@ export class ImpulseOnDestroy extends UniversalCollisionHandler {
     })
     public explosionUplift: number = 0.2;
 
-    destroySelf(fromFloor: boolean = false) {
+    destroySelf(reason: string = 'unknown') {
         if (this.isDestroyed) return;
 
         this.applyExplosionImpulseManually();
-        super.destroySelf(fromFloor);
+        super.destroySelf(reason);
     }
 
     applyExplosionImpulseManually() {
@@ -66,7 +66,7 @@ export class ImpulseOnDestroy extends UniversalCollisionHandler {
             if (otherNode === this.node) continue;
             if (!otherRb.isValid || !otherNode.activeInHierarchy) continue;
 
-            // Проверка инициализации физики (внутренняя переменная)
+
             const isInitialized = (otherRb as any)._isInitialized;
             if (!isInitialized) {
                 console.warn(`ImpulseOnDestroy: ${otherNode.name} — RigidBody не инициализирован`);
@@ -94,10 +94,10 @@ export class ImpulseOnDestroy extends UniversalCollisionHandler {
 
             const impulse = direction.multiplyScalar(this.explosionImpulse);
 
-            // Безопасное применение импульса
+
             try {
                 otherRb.applyImpulse(impulse);
-                // console.log(`Импульс на ${otherNode.name}`);
+
             } catch (e) {
                 console.warn(`ImpulseOnDestroy: Ошибка при применении импульса к ${otherNode.name}:`, e);
             }

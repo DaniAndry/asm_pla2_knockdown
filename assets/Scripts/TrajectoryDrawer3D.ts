@@ -1,4 +1,4 @@
-// === TrajectoryDrawer3D.ts ===
+
 import { _decorator, Component, Node, Vec3, Prefab, instantiate, CCFloat } from 'cc';
 const { ccclass, property } = _decorator;
 
@@ -10,10 +10,10 @@ export class TrajectoryDrawer3D extends Component {
     @property(CCFloat) gravity: number = 9.8;
 
     private _points: Node[] = [];
-    private _pointsPool: Node[] = []; // Пул точек для переиспользования
+    private _pointsPool: Node[] = [];
 
     draw(startPos: Vec3, velocity: Vec3) {
-        // Скрываем текущие точки
+
         this.hidePoints();
 
         const g = this.gravity;
@@ -26,8 +26,8 @@ export class TrajectoryDrawer3D extends Component {
             const z = startPos.z + velocity.z * t;
 
             const pos = new Vec3(x, y, z);
-            
-            // Получаем точку из пула или создаем новую
+
+
             let point = this.getPointFromPool();
             point.setWorldPosition(pos);
             point.active = true;
@@ -36,7 +36,7 @@ export class TrajectoryDrawer3D extends Component {
         }
     }
 
-    // Скрываем точки (возвращаем в пул)
+
     private hidePoints() {
         for (const point of this._points) {
             if (point && point.isValid) {
@@ -46,24 +46,24 @@ export class TrajectoryDrawer3D extends Component {
         }
         this._points.length = 0;
     }
-    
-    // Получаем точку из пула или создаем новую
+
+
     private getPointFromPool(): Node {
         if (this._pointsPool.length > 0) {
             return this._pointsPool.pop();
         }
-        
-        // Создаем новую точку только если пул пуст
+
+
         const point = instantiate(this.pointPrefab);
         this.node.scene.addChild(point);
         return point;
     }
 
     clear() {
-        // Полное очищение (используется при уничтожении компонента)
+
         this.hidePoints();
-        
-        // Уничтожаем все точки в пуле
+
+
         for (const point of this._pointsPool) {
             if (point && point.isValid) {
                 point.destroy();
@@ -71,7 +71,7 @@ export class TrajectoryDrawer3D extends Component {
         }
         this._pointsPool.length = 0;
     }
-    
+
     onDestroy() {
         this.clear();
     }

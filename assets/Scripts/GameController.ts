@@ -2,9 +2,6 @@ import { _decorator, Component, Node, isValid, director } from 'cc';
 import { LevelManager } from './LevelManager';
 const { ccclass, property } = _decorator;
 
-/**
- * Главный контроллер игры - управляет переходами между уровнями
- */
 @ccclass('GameController')
 export class GameController extends Component {
     @property({ type: [Node], tooltip: 'Все ноды уровней в порядке (Level1, Level2, Level3)' })
@@ -20,7 +17,7 @@ export class GameController extends Component {
     private currentLevelManager: LevelManager = null;
 
     onLoad() {
-        // Подписываемся на события завершения уровня
+
         for (const levelNode of this.levels) {
             if (isValid(levelNode)) {
                 levelNode.on('level-completed', this.onLevelCompleted, this);
@@ -29,14 +26,14 @@ export class GameController extends Component {
     }
 
     start() {
-        // Скрываем все уровни кроме первого
+
         this.hideAllLevels();
-        
-        // Запускаем первый уровень
+
+
         this.startLevel(0);
     }
 
-    // Начать уровень по индексу
+
     private startLevel(index: number) {
         if (index < 0 || index >= this.levels.length) {
             console.log('[GameController] Все уровни пройдены!');
@@ -51,32 +48,32 @@ export class GameController extends Component {
             return;
         }
 
-        // Показываем текущий уровень
+
         levelNode.active = true;
 
-        // Получаем LevelManager
+
         this.currentLevelManager = levelNode.getComponent(LevelManager);
         if (!isValid(this.currentLevelManager)) {
             console.error(`[GameController] LevelManager не найден на уровне ${index + 1}!`);
             return;
         }
 
-        // Запускаем уровень
+
         this.currentLevelManager.startLevel();
         console.log(`[GameController] 🎮 Уровень ${index + 1} запущен!`);
     }
 
-    // Обработка завершения уровня
+
     private onLevelCompleted(eventData: any) {
         const { levelNumber, victory, remainingObjects, projectilesUsed } = eventData;
 
         console.log(`[GameController] Уровень ${levelNumber} завершен!`);
         console.log(`Победа: ${victory}, Осталось объектов: ${remainingObjects}, Снарядов: ${projectilesUsed}`);
 
-        // Переходы / lose / finish теперь полностью ведёт LevelSwitcher
+
     }
 
-    // Следующий уровень
+
     private nextLevel() {
         const nextIndex = this.currentLevelIndex + 1;
 
@@ -86,35 +83,35 @@ export class GameController extends Component {
             return;
         }
 
-        // Скрываем текущий уровень
+
         if (isValid(this.levels[this.currentLevelIndex])) {
             this.levels[this.currentLevelIndex].active = false;
         }
 
-        // Запускаем следующий
+
         this.startLevel(nextIndex);
     }
 
-    // Перезапуск текущего уровня
+
     private restartCurrentLevel() {
         console.log('[GameController] 🔄 Перезапуск уровня...');
-        
-        // Перезагружаем сцену (простейший способ)
+
+
         director.loadScene(director.getScene().name);
-        
-        // Или можно сделать ручной перезапуск:
-        // this.levels[this.currentLevelIndex].active = false;
-        // this.scheduleOnce(() => {
-        //     this.startLevel(this.currentLevelIndex);
-        // }, 0.1);
+
+
+
+
+
+
     }
 
-    // Все уровни пройдены
+
     private onAllLevelsCompleted() {
         console.log('[GameController] 🎊 Game Complete!');
-        
-        // Здесь можно показать финальный экран, статистику и т.д.
-        // Например, показать общий счет:
+
+
+
         if (isValid(this.scoreManager)) {
             const scoreComponent = this.scoreManager.getComponent('ScoreManager');
             if (scoreComponent) {
@@ -124,7 +121,7 @@ export class GameController extends Component {
         }
     }
 
-    // Скрыть все уровни
+
     private hideAllLevels() {
         for (const levelNode of this.levels) {
             if (isValid(levelNode)) {
@@ -133,7 +130,7 @@ export class GameController extends Component {
         }
     }
 
-    // Публичные методы для внешнего управления
+
     public getCurrentLevelManager(): LevelManager {
         return this.currentLevelManager;
     }
@@ -147,7 +144,7 @@ export class GameController extends Component {
         if (isValid(this.scoreManager)) {
             this.scoreManager.emit('reset-score');
         }
-        
+
         if (isValid(this.levelUIController)) {
             const uiController = this.levelUIController.getComponent('LevelUIController');
             if (uiController) {

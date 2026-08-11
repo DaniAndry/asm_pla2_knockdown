@@ -152,19 +152,21 @@
     },
     "meshSimplify": {
       "enable": true,
-      "targetRatio": 0.7,
+      "targetRatio": 0.2,
       "autoErrorRate": true,
       "lockBoundary": true,
-      "errorRate": 0.7
+      "errorRate": 0.2
     },
     "meshCompress": {
       "enable": true,
       "compress": true,
-      "quantize": true
+      "quantize": false
     },
     "meshOptimize": {
       "enable": true,
-      "overdraw": false
+      "overdraw": true,
+      "vertexCache": true,
+      "vertexFetch": true
     },
     "meshCluster": {
       "enable": false

@@ -40,11 +40,11 @@ export class CannonController extends Component {
 
     private hasLaunched = false;
     private projectile: Node = null;
-    /** После первого клика физика больше не замораживается до смены уровня */
+
     private physicsUnlocked = false;
-    /** Инвалидирует отложенный freeze после settle */
+
     private settleToken: number = 0;
-    /** Dynamic-тела, временно переведённые в KINEMATIC на hold */
+
     private frozenBodies: RigidBody[] = [];
     private _trajectoryDrawerComponent: TrajectoryDrawer3D = null;
     private initialProjectilePosition: Vec3 = new Vec3();
@@ -54,11 +54,11 @@ export class CannonController extends Component {
     private currentVerticalAngle: number = 0;
     private initialBarrelRotation: Quat = new Quat();
 
-    // 🔹 автоматическая очередь
+
     private isFiringHeld: boolean = false;
     private fireLoopScheduled: boolean = false;
 
-    // Стрелочные функции чтобы корректно снимать слушатели
+
     private _onVisibilityChange = () => {
         if (document.hidden) this.stopFiringLoop();
     };
@@ -73,7 +73,7 @@ export class CannonController extends Component {
         input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         input.on(Input.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
 
-        // Сброс очереди при уходе со вкладки / потере фокуса окна
+
         document.addEventListener('visibilitychange', this._onVisibilityChange);
         window.addEventListener('blur', this._onWindowBlur);
 
@@ -146,7 +146,7 @@ export class CannonController extends Component {
     }
 
     private onTouchStart(event: EventTouch) {
-        // Разблокируем аудио на жесте прицеливания/выстрела
+
         SoundManager.markFirstTouch();
 
         const touch = event.getLocation();
@@ -157,8 +157,8 @@ export class CannonController extends Component {
             if (normalizedX < this.controlMinX || normalizedX > this.controlMaxX) return;
         }
 
-        // Физику включаем сразу по клику — не ждём успешного launchProjectile
-        // (иначе при отсутствии снаряда / гонке settle стек остаётся замороженным)
+
+
         this.unlockPhysicsForGameplay();
 
         if (!this.projectile || !this.projectile.isValid) return;
@@ -166,7 +166,7 @@ export class CannonController extends Component {
         this.targetClickPoint = touch;
         this.aimAtScreenPoint(touch, event);
 
-        // 🚀 включаем очередь
+
         this.isFiringHeld = true;
         this.startFiringLoop();
     }
@@ -186,10 +186,10 @@ export class CannonController extends Component {
         if (this.fireLoopScheduled) this.unschedule(this.fireLoopLogic);
         this.fireLoopScheduled = true;
 
-        // первый выстрел сразу
+
         this.fireLoopLogic();
 
-        // остальные — с интервалом
+
         this.schedule(this.fireLoopLogic, this.fireHoldInterval);
     }
 
@@ -295,11 +295,7 @@ export class CannonController extends Component {
         node.children.forEach(child => this.enableMeshesRecursively(child));
     }
 
-    /**
-     * Стек оседает settleDuration, затем freeze (DYNAMIC → KINEMATIC).
-     * PhysicsSystem.enable / autoSimulation не трогаем (иначе мир ломается).
-     * По клику — обратно DYNAMIC + wakeUp.
-     */
+
     private beginPreShotPhysicsHold() {
         this.physicsUnlocked = false;
         SoundManager.disableHits();
@@ -319,7 +315,7 @@ export class CannonController extends Component {
         }, duration);
     }
 
-    /** Первый клик / выстрел — разморозка до смены уровня */
+
     private unlockPhysicsForGameplay() {
         this.physicsUnlocked = true;
         this.settleToken++;
@@ -335,12 +331,30 @@ export class CannonController extends Component {
         physicsSystem.autoSimulation = true;
     }
 
-    /** Коробки: useGravity + active. Снаряды (kinematic без gravity) не трогаем. */
+
     private forEachGameplayBody(fn: (rb: RigidBody) => void) {
         const scene = this.node.scene;
         if (!isValid(scene)) return;
 
-        const bodies = scene.getComponentsInChildren(RigidBody);
+        let bodies: RigidBody[];
+        try {
+            bodies = scene.getComponentsInChildren(RigidBody);
+        } catch {
+            // Сцена может быть в процессе разрушения — например, "Try Again"
+            // в LevelSwitcher перезагружает сцену, и наш собственный
+            // onDestroy() вызывает unfreezePhysics() -> forEachGameplayBody()
+            // прямо посреди этого процесса. В этот момент isValid(scene) уже
+            // может быть true, но часть дерева сцены физически разобрана
+            // (у некоторых узлов _children == null), и getComponentsInChildren()
+            // падает с "Cannot read properties of null (reading 'length')".
+            // Раньше это было необработанным исключением прямо внутри
+            // onDestroy() — оно прерывало остальной каскад разрушения сцены
+            // на середине и, судя по всему, приводило следом к Error 5000
+            // (destroy object twice). Если сцена всё равно разрушается —
+            // размораживать в ней уже нечего, просто выходим.
+            return;
+        }
+
         for (const rb of bodies) {
             if (!isValid(rb) || !rb.enabled) continue;
             if (!rb.node?.activeInHierarchy) continue;
@@ -362,25 +376,25 @@ export class CannonController extends Component {
                 rb.type = RigidBody.Type.KINEMATIC;
                 this.frozenBodies.push(rb);
             } catch {
-                // RB ещё не готов
+
             }
         });
     }
 
     private unfreezePhysics() {
-        // Восстанавливаем то, что заморозили мы
+
         for (const rb of this.frozenBodies) {
             if (!isValid(rb) || !rb.enabled) continue;
             try {
                 rb.type = RigidBody.Type.DYNAMIC;
                 if ((rb as any)._isInitialized) rb.wakeUp();
             } catch {
-                // ignore
+
             }
         }
         this.frozenBodies.length = 0;
 
-        // Подстраховка: коробки, оставшиеся KINEMATIC после прошлого бага
+
         this.forEachGameplayBody((rb) => {
             try {
                 if (rb.type !== RigidBody.Type.DYNAMIC) {
@@ -388,7 +402,7 @@ export class CannonController extends Component {
                 }
                 if ((rb as any)._isInitialized) rb.wakeUp();
             } catch {
-                // ignore
+
             }
         });
     }

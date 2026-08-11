@@ -5,7 +5,7 @@ const { ccclass } = _decorator;
 export class DestroyObjects extends Component {
     onEnable() {
         this.scheduleOnce(() => {
-          
+
         }, 2);
     }
 }

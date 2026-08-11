@@ -40,16 +40,13 @@ export class SoundManager extends Component {
         return this._instance;
     }
 
-    /** Пользователь выключил звук кнопкой */
+
     public static isMuted = false;
 
-    /** Был ли первый клик (autoplay policy) */
+
     public static firstTouch = false;
 
-    /**
-     * Хиты от коллизий разрешены только после первого выстрела,
-     * иначе settle/перезагрузка уровня даёт «скоп» звуков.
-     */
+
     public static hitsEnabled = false;
 
     public static toggleSoundButtonCB: ((muted: boolean) => void) | null = null;
@@ -63,7 +60,7 @@ export class SoundManager extends Component {
     private _listeningFirstTouch = false;
     private static _missingSoundWarned: Set<string> = new Set();
 
-    /** Время последнего хита (для детекта промаха) */
+
     private static _lastHitTimestampMs: number = 0;
 
     protected onLoad(): void {
@@ -196,7 +193,7 @@ export class SoundManager extends Component {
             this.unmuteAll();
         }
 
-        // Фон стартует только после реального жеста пользователя
+
         this.playBackground();
     }
 
@@ -209,7 +206,7 @@ export class SoundManager extends Component {
 
     static playOneShot(name: string, volumeScale: number = 1) {
         if (!name) return;
-        // Не разблокируем звук сами — иначе settle-коллизии играют «скопом» на старте
+
         if (!this.canPlay()) return;
 
         const record = this.getRecord(name);
@@ -225,7 +222,7 @@ export class SoundManager extends Component {
         record.source.playOneShot(record.clip, volumeScale);
     }
 
-    /** Запустить фоновую музыку лупом (если ещё не играет) */
+
     static playBackground(name?: string) {
         const sm = this.get();
         if (!sm || !this.canPlay()) return;
@@ -258,7 +255,7 @@ export class SoundManager extends Component {
         this.hitsEnabled = false;
     }
 
-    /** Сообщить, что был хит (для промаха снаряда) */
+
     static notifyHit() {
         this._lastHitTimestampMs = performance.now();
     }
@@ -311,7 +308,7 @@ export class SoundManager extends Component {
             record.source.playOnAwake = false;
             record.source.clip = record.clip;
             record.source.loop = record.looped || record.name === this.backgroundName;
-            record.source.volume = 0; // до firstTouch тишина
+            record.source.volume = 0;
         });
     }
 }
