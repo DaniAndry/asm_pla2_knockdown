@@ -34,10 +34,13 @@
       },
       {
         "__id__": 11
+      },
+      {
+        "__id__": 13
       }
     ],
     "_prefab": {
-      "__id__": 13
+      "__id__": 15
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -226,7 +229,7 @@
     "node": {
       "__id__": 1
     },
-    "_enabled": true,
+    "_enabled": false,
     "__prefab": {
       "__id__": 12
     },
@@ -235,6 +238,31 @@
   {
     "__type__": "cc.CompPrefabInfo",
     "fileId": "baBu4l0X5GO53wWQG035rD"
+  },
+  {
+    "__type__": "1ae9dlBsktAYIk8E+Fc6M8r",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 1
+    },
+    "_enabled": true,
+    "__prefab": {
+      "__id__": 14
+    },
+    "knockdown": null,
+    "projectileRadius": 0.7,
+    "minSpeed": 2,
+    "stopOnHit": true,
+    "hitCooldown": 0.0001,
+    "lookAhead": 0.4,
+    "debug": true,
+    "_id": ""
+  },
+  {
+    "__type__": "cc.CompPrefabInfo",
+    "fileId": "03DAKkYClIHoFgB088buZv"
   },
   {
     "__type__": "cc.PrefabInfo",
