@@ -104,7 +104,7 @@
             "_value": true
           },
           "profiler": {
-            "_value": true
+            "_value": false
           },
           "occlusion-query": {
             "_value": true
@@ -168,10 +168,10 @@
             "_value": false
           },
           "marionette": {
-            "_value": false
+            "_value": true
           },
           "procedural-animation": {
-            "_value": false
+            "_value": true
           },
           "custom-pipeline-post-process": {
             "_value": false
@@ -202,12 +202,13 @@
           "base",
           "custom-pipeline",
           "gfx-webgl",
+          "marionette",
           "meshopt",
           "occlusion-query",
           "particle",
           "physics-ammo",
           "primitive",
-          "profiler",
+          "procedural-animation",
           "skeletal-animation",
           "tween",
           "ui"

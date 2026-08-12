@@ -110,18 +110,18 @@
       ]
     },
     "meshOptimize": {
-      "enable": true,
+      "enable": false,
       "vertexCache": true,
       "vertexFetch": true,
       "overdraw": true
     },
     "meshCompress": {
-      "enable": true,
+      "enable": false,
       "compress": true,
       "quantize": true
     },
     "meshSimplify": {
-      "enable": true,
+      "enable": false,
       "targetRatio": 0.3,
       "errorRate": 0.3,
       "autoErrorRate": true,
