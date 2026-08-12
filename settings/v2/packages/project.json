@@ -7,13 +7,29 @@
     }
   ],
   "physics": {
-    "fixedTimeStep": 0.016666,
+    "fixedTimeStep": 0.022,
     "autoSimulation": true,
     "gravity": {
-      "y": -15
+      "y": -25
     },
-    "sleepThreshold": 0.15,
-    "maxSubSteps": 2
+    "sleepThreshold": 0.9,
+    "maxSubSteps": 2,
+    "collisionGroups": [
+      {
+        "index": 1,
+        "name": "FLOOR_GROUP"
+      },
+      {
+        "index": 2,
+        "name": "SHATTER_GROUP"
+      }
+    ],
+    "collisionMatrix": {
+      "0": 3,
+      "1": 7,
+      "2": 2
+    },
+    "defaultMaterial": "a03aa7ce-3252-43e3-96fd-2e259b98d57a"
   },
   "general": {
     "designResolution": {

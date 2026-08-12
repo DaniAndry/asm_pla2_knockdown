@@ -219,6 +219,24 @@
       "scenes": [
         "c8286631-02f3-4a21-946c-2da17d8379bf@ca277"
       ]
+    },
+    "meshOptimize": {
+      "enable": true,
+      "vertexCache": true,
+      "vertexFetch": true,
+      "overdraw": true
+    },
+    "meshCompress": {
+      "enable": true,
+      "compress": true,
+      "quantize": true
+    },
+    "meshSimplify": {
+      "enable": true,
+      "targetRatio": 0.3,
+      "errorRate": 0.3,
+      "autoErrorRate": true,
+      "lockBoundary": true
     }
   }
 }

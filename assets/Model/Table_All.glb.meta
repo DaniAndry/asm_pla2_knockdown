@@ -224,18 +224,23 @@
       ]
     },
     "meshOptimize": {
-      "enable": true
+      "enable": true,
+      "vertexCache": true,
+      "vertexFetch": true,
+      "overdraw": true
     },
     "meshSimplify": {
       "enable": true,
-      "targetRatio": 0.61,
-      "errorRate": 0.6,
+      "targetRatio": 0.5,
+      "errorRate": 0.5,
       "autoErrorRate": true,
       "lockBoundary": true
     },
     "meshCompress": {
       "enable": true,
-      "compress": true
+      "compress": true,
+      "encode": true,
+      "quantize": true
     }
   }
 }

@@ -38,6 +38,11 @@ export class CannonController extends Component {
     @property({ tooltip: 'Сколько секунд дать стеку осесть, затем заморозить физику до первого выстрела' })
     settleDuration: number = 1.2;
 
+    @property({
+        tooltip: 'ВЫКЛ = не замораживать стек в Kinematic перед выстрелом, а положиться на штатный сон физики. Заморозка писалась когда sleepThreshold был 0 и тела не засыпали НИКОГДА — она была костылём вместо сна. Сейчас сон работает, и заморозка вредит: unfreeze при каждом выстреле будит все 400+ тел разом, после чего они заново оседают и засыпают, сжигая солвер. Спящее тело так же неподвижно, но дешевле и не требует массового пробуждения.'
+    })
+    usePreShotFreeze: boolean = true;
+
     private hasLaunched = false;
     private projectile: Node = null;
 
@@ -359,12 +364,21 @@ export class CannonController extends Component {
             if (!isValid(rb) || !rb.enabled) continue;
             if (!rb.node?.activeInHierarchy) continue;
             if (!rb.useGravity) continue;
+            // Static-тела (Floor и любая другая неподвижная геометрия) —
+            // не "геймплейные" тела пирамиды и никогда не должны попадать
+            // под freeze/unfreeze-цикл. Раньше unfreezePhysics() безусловно
+            // выставлял ЛЮБОМУ подошедшему под фильтр телу Type.DYNAMIC —
+            // Floor проходил фильтр (enabled, активен, useGravity не
+            // выключен) и на каждый выстрел заново становился Dynamic,
+            // хотя freezePhysics() его туда никогда не замораживал.
+            if (rb.type === RigidBody.Type.STATIC) continue;
             fn(rb);
         }
     }
 
     private freezePhysics() {
         this.frozenBodies.length = 0;
+        if (!this.usePreShotFreeze) return;
 
         this.forEachGameplayBody((rb) => {
             try {
@@ -383,11 +397,15 @@ export class CannonController extends Component {
 
     private unfreezePhysics() {
 
+        // Возвращаем тип тем телам, которые МЫ сами заморозили. wakeUp() тут
+        // намеренно НЕ вызывается: за время прицеливания в мире ничего не
+        // изменилось, конфигурация стека та же, что была в момент засыпания —
+        // значит спящие могут спокойно спать дальше, а физика сама разбудит
+        // ровно те тела, которых реально коснётся снаряд или падающий сосед.
         for (const rb of this.frozenBodies) {
             if (!isValid(rb) || !rb.enabled) continue;
             try {
                 rb.type = RigidBody.Type.DYNAMIC;
-                if ((rb as any)._isInitialized) rb.wakeUp();
             } catch {
 
             }
@@ -395,12 +413,16 @@ export class CannonController extends Component {
         this.frozenBodies.length = 0;
 
 
+        // Подчищающий проход на случай, если что-то осталось Kinematic не по
+        // нашей вине. Раньше здесь на КАЖДЫЙ выстрел вызывался wakeUp() для
+        // всех 400+ тел уровня — это в одиночку убивало весь эффект сна:
+        // вся пирамида просыпалась на каждом выстреле и потом заново оседала
+        // и засыпала, сжигая солвер. Восстанавливаем только тип, не будим.
         this.forEachGameplayBody((rb) => {
             try {
                 if (rb.type !== RigidBody.Type.DYNAMIC) {
                     rb.type = RigidBody.Type.DYNAMIC;
                 }
-                if ((rb as any)._isInitialized) rb.wakeUp();
             } catch {
 
             }

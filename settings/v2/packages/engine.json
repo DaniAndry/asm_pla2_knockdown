@@ -58,7 +58,7 @@
           },
           "physics": {
             "_value": true,
-            "_option": "physics-cannon"
+            "_option": "physics-ammo"
           },
           "physics-ammo": {
             "_value": true,
@@ -190,7 +190,9 @@
             "_value": false
           }
         },
-        "flags": {},
+        "flags": {
+          "LOAD_BULLET_MANUALLY": false
+        },
         "includeModules": [
           "2d",
           "3d",
@@ -203,7 +205,7 @@
           "meshopt",
           "occlusion-query",
           "particle",
-          "physics-cannon",
+          "physics-ammo",
           "primitive",
           "profiler",
           "skeletal-animation",
@@ -215,6 +217,9 @@
           "version": ""
         }
       }
+    },
+    "graphics": {
+      "pipeline": "custom-pipeline"
     }
   }
 }

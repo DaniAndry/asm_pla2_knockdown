@@ -32,6 +32,7 @@ const _impulse = new Vec3();
 const _tmpPos = new Vec3();
 const _tmpScale = new Vec3();
 const _tmpQuat = new Quat();
+const _renderCheckVel = new Vec3();
 
 interface WakeRequest { x: number; y: number; z: number; r2: number; }
 
@@ -129,18 +130,26 @@ export class UniversalCollisionHandler extends Component {
 
     private static lastGlobalHitSoundTime: number = 0;
     private static liveBodies: Set<RigidBody> = new Set();
-    
+
+    // Группы физики из Project Settings -> Physics -> Collision Matrix.
+    // ВАЖНО: значение — это 1 << Index (столбец Index в матрице), а не
+    // какое-то произвольное число. У Cocos нет автосгенерированного enum'а
+    // для кастомных групп из матрицы, поэтому синхронизируем руками:
+    // DEFAULT = index 0, FLOOR_GROUP = index 1 (уже созданы в редакторе),
+    // SHATTER_GROUP = index 2 (добавить в редакторе через "+ Add" ПОСЛЕ
+    // FLOOR_GROUP, ничего не переставляя — иначе индексы/биты разъедутся).
+    // Group/Mask в этом проекте (physics-cannon) настраиваются на
+    // cc.RigidBody, а не на Collider — см. поле "Group" в инспекторе RigidBody.
+    public static readonly GROUP_DEFAULT: number = 1 << 0;
+    public static readonly GROUP_FLOOR: number = 1 << 1;
+    public static readonly GROUP_SHATTER: number = 1 << 2;
+
     private static readonly MAX_LINEAR_SPEED: number = 18;
     private static velocitySafetyRegistered: boolean = false;
     private static sceneResetRegistered: boolean = false;
 
     private static readonly MAX_STEP_DISTANCE: number = 6;
     private static lastGoodPos: Map<RigidBody, Vec3> = new Map();
-
-    // Печатать в консоль причину каждого уничтожения объекта (floor / hit /
-    // outOfBounds / physicsGlitch / unknown) — помогает понять, откуда именно
-    // объект сломался. Можно выключить.
-    public static debugLogDestroy: boolean = true;
 
     private static activeFxCount: number = 0;
     private static readonly MAX_ACTIVE_FX: number = 6;
@@ -198,6 +207,27 @@ export class UniversalCollisionHandler extends Component {
 
     public applyLevelSharedRefs(camera: Camera | null) {
         this.mainCamera = camera;
+    }
+
+    // Для дальнего/динамического рендер-каллинга из LevelManager: включает
+    // или выключает ВСЕ закешированные MeshRenderer объекта (сам "целый"
+    // меш плюс дормантные меши осколков — на них .enabled=false безобиден,
+    // они и так невидимы, пока их узел не активирован при шаттере).
+    // Физика (Collider/RigidBody) не трогается — это чисто рендер.
+    public setRenderersEnabled(enabled: boolean): void {
+        for (let i = 0; i < this.cachedRenderers.length; i++) {
+            const r = this.cachedRenderers[i];
+            if (isValid(r)) r.enabled = enabled;
+        }
+    }
+
+    // true, если текущая линейная скорость тела превышает порог — используется
+    // LevelManager'ом, чтобы понять, что скрытый (culled) объект "ожил"
+    // (толкнули соседи при обвале) и его пора снова показать.
+    public isMovingBeyond(speedThresholdSqr: number): boolean {
+        if (!isValid(this.rb)) return false;
+        this.rb.getLinearVelocity(_renderCheckVel);
+        return _renderCheckVel.lengthSqr() > speedThresholdSqr;
     }
 
     onDestroy() {
@@ -327,9 +357,14 @@ export class UniversalCollisionHandler extends Component {
     destroySelf(reason: string = 'unknown') {
         if (this.isDestroyed) return;
 
-        if (UniversalCollisionHandler.debugLogDestroy) {
-            console.log(`[UniversalCollisionHandler] "${this.node.name}" destroyed. reason=${reason}, useHealthSystem=${this.useHealthSystem}`);
-        }
+        // Подстраховка для рендер-каллинга (LevelManager может скрывать
+        // дальние объекты по Z и показывать их только когда они "ожили" —
+        // см. setRenderersEnabled/isMovingBeyond выше). Если объект
+        // разрушается ДО того, как опрос скорости успел его раскрыть
+        // (например, лёг на пол ещё стартовым "усаживанием" стека, ни разу
+        // не набрав скорость выше порога) — он всё равно должен быть виден
+        // в момент уничтожения/шаттера, а не остаться невидимым навсегда.
+        this.setRenderersEnabled(true);
 
         // "Вылет за пределы уровня" (killY / outOfBoundsXZ в LevelManager) и
         // "физический глюк" (телепорт/NaN за один шаг, см. destroyUnstableBody)
@@ -516,6 +551,8 @@ export class UniversalCollisionHandler extends Component {
 
         for (const rb of UniversalCollisionHandler.liveBodies) {
             if (!isValid(rb) || !rb.enabled || !rb.isDynamic) continue;
+            // Спящие тела не двигались — телепорт/скорость проверять нечего.
+            if (rb.isSleeping) continue;
             const node = rb.node;
             if (!node?.activeInHierarchy) continue;
 
@@ -850,6 +887,15 @@ export class UniversalCollisionHandler extends Component {
         rb.type = RigidBody.Type.DYNAMIC;
         rb.useGravity = true;
         rb.allowSleep = true;
+
+        // Осколок физически взаимодействует ТОЛЬКО с Floor — не с другими
+        // осколками, не с ещё целыми блоками, не со снарядом. Group/Mask —
+        // на RigidBody (см. константы GROUP_* выше и Collision Matrix в
+        // Project Settings, где должны быть включены галочки
+        // FLOOR_GROUP×SHATTER_GROUP и выключены SHATTER_GROUP×SHATTER_GROUP,
+        // SHATTER_GROUP×DEFAULT).
+        rb.setGroup(UniversalCollisionHandler.GROUP_SHATTER);
+        rb.setMask(UniversalCollisionHandler.GROUP_FLOOR);
         rb.mass = Math.max(0.05, this.shatterPieceMass);
         rb.linearDamping = 0.35;
         rb.angularDamping = 0.45;

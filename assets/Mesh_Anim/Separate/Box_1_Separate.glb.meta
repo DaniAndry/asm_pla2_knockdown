@@ -108,6 +108,24 @@
       "scenes": [
         "f187ae22-7762-40e5-87fe-fee8fd84ddba@f917b"
       ]
+    },
+    "meshOptimize": {
+      "enable": true,
+      "vertexCache": true,
+      "vertexFetch": true,
+      "overdraw": true
+    },
+    "meshCompress": {
+      "enable": true,
+      "compress": true,
+      "quantize": true
+    },
+    "meshSimplify": {
+      "enable": true,
+      "targetRatio": 0.3,
+      "errorRate": 0.3,
+      "autoErrorRate": true,
+      "lockBoundary": true
     }
   }
 }

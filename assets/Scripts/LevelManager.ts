@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, isValid, director, Camera } from 'cc';
+import { _decorator, Component, Node, isValid, director, Camera, PhysicsSystem, CCFloat, CCInteger } from 'cc';
 import { UniversalCollisionHandler } from './UniversalCollisionHandler';
 import { SoundManager } from './SoundManager';
 
@@ -33,7 +33,26 @@ export class LevelManager extends Component {
     @property({ tooltip: 'За пределами |X|/|Z| объект считается вылетевшим' })
     outOfBoundsXZ: number = 22;
 
+    @property({ tooltip: 'Динамический рендер-каллинг: включать меши только у ближних по Z рядов и у "ожививших" объектов (для тяжёлых уровней с сотнями объектов)' })
+    enableRenderCulling: boolean = false;
+
+    @property({ tooltip: 'Дистанция по Z от камеры (в мировых координатах), в пределах которой рендер объекта включён с самого старта уровня' })
+    renderCullNearZ: number = 6;
+
+    @property({ tooltip: 'Порог скорости (м/с) — выше него скрытый объект считается "начавшим двигаться" и его рендер включается' })
+    renderCullWakeSpeed: number = 0.3;
+
+    @property({ tooltip: 'Прогреть физику на старте уровня: прогнать симуляцию вперёд на Warmup Steps шагов ДО первого кадра, чтобы пирамида "усела" мгновенно (и как можно больше тел успело заснуть), а не на глазах у игрока. Даёт один синхронный хитч при загрузке уровня вместо видимого джиттера первую секунду.' })
+    enablePhysicsWarmup: boolean = false;
+
+    @property({ type: CCInteger, tooltip: 'Сколько физических шагов прогнать при прогреве. Больше = дольше хитч при загрузке, но выше шанс что всё успеет осесть и заснуть' })
+    warmupSteps: number = 60;
+
+    @property({ type: CCFloat, tooltip: 'Длительность одного шага при прогреве (сек). Обычно совпадает с fixedTimeStep в PhysicsBootstrap' })
+    warmupStepDt: number = 1 / 60;
+
     private destructibleObjects: UniversalCollisionHandler[] = [];
+    private hiddenRenderObjects: UniversalCollisionHandler[] = [];
     private currentProjectileCount: number = 0;
     private isLevelComplete: boolean = false;
     private isLevelStarted: boolean = false;
@@ -111,14 +130,20 @@ export class LevelManager extends Component {
         this.unschedule(this.checkLevelCompletion);
         this.unschedule(this.checkLevelCompletionLate);
         this.unschedule(this.pollLevelProgress);
+        this.unschedule(this.revealMovingHiddenObjects);
 
         this.isLevelStarted = true;
         this.isLevelComplete = false;
         this.currentProjectileCount = 0;
         this.lastClearedAll = false;
 
+        if (this.enablePhysicsWarmup) {
+            this.fastForwardSettle();
+        }
+
         this.collectDestructibles();
         this.ensureSceneSubscription();
+        this.applyInitialRenderCulling();
 
         this.node.emit('level-started', this.levelNumber);
         this.node.emit('projectiles-updated', {
@@ -134,7 +159,89 @@ export class LevelManager extends Component {
         this.scheduleOnce(this.pollLevelProgress, 0);
         this.scheduleOnce(this.pollLevelProgress, 0.25);
         this.schedule(this.pollLevelProgress, 0.4);
+
+        if (this.enableRenderCulling) {
+            this.schedule(this.revealMovingHiddenObjects, 0.1);
+        }
     }
+
+    // Прогоняет физику вперёд на warmupSteps шагов ОДНИМ синхронным блоком —
+    // пирамида "усядется" ещё до первого отрисованного кадра игроком, вместо
+    // видимого джиттера первую секунду. Даёт короткий синхронный хитч при
+    // загрузке уровня (пропорционален числу шагов и тяжести сцены), но не
+    // меняет ничьё поведение/тип объектов — это то же самое честное
+    // усаживание, просто сжатое во времени. autoSimulation временно
+    // выключается на время прогрева и восстанавливается, чтобы не задвоить
+    // шаг с PhysicsBootstrap.update().
+    private fastForwardSettle() {
+        const ps = PhysicsSystem.instance;
+        if (!ps || typeof (ps as any).simulate !== 'function') return;
+
+        const wasAuto = ps.autoSimulation;
+        ps.autoSimulation = false;
+
+        const steps = Math.max(1, Math.floor(this.warmupSteps));
+        const dt = Math.max(1 / 240, this.warmupStepDt);
+
+        try {
+            for (let i = 0; i < steps; i++) {
+                ps.simulate(dt);
+            }
+        } catch (e) {
+            console.warn('[LevelManager] fastForwardSettle: ps.simulate упал во время прогрева, останавливаю.', e);
+        }
+
+        ps.autoSimulation = wasAuto;
+    }
+
+    // Скрывает MeshRenderer у объектов дальше renderCullNearZ от камеры по Z
+    // (задние ряды пирамиды, которых не видно из-за передних). Физику не
+    // трогаем — только рендер, чтобы снизить нагрузку на GPU на тяжёлых
+    // уровнях (сотни объектов). Скрытые объекты попадают в hiddenRenderObjects
+    // и дальше отслеживаются revealMovingHiddenObjects() — как только такой
+    // объект начинает двигаться (толкнули при обвале), его снова показываем.
+    private applyInitialRenderCulling() {
+        this.hiddenRenderObjects.length = 0;
+        if (!this.enableRenderCulling) return;
+
+        const camera = isValid(this.mainCamera)
+            ? this.mainCamera
+            : (this.node.scene?.getComponentInChildren(Camera) ?? null);
+        if (!isValid(camera)) return;
+
+        const camZ = camera.node.worldPosition.z;
+
+        for (const obj of this.destructibleObjects) {
+            if (!isValid(obj) || !isValid(obj.node)) continue;
+
+            const distZ = Math.abs(obj.node.worldPosition.z - camZ);
+            const visible = distZ <= this.renderCullNearZ;
+
+            obj.setRenderersEnabled(visible);
+            if (!visible) this.hiddenRenderObjects.push(obj);
+        }
+    }
+
+    // Лёгкий частый проход ТОЛЬКО по скрытым объектам (их обычно намного
+    // меньше, чем всего destructibleObjects) — проверяет скорость и
+    // раскрывает рендер, как только объект реально задвигался.
+    private revealMovingHiddenObjects = () => {
+        if (this.hiddenRenderObjects.length === 0) return;
+
+        const speedThresholdSqr = this.renderCullWakeSpeed * this.renderCullWakeSpeed;
+
+        for (let i = this.hiddenRenderObjects.length - 1; i >= 0; i--) {
+            const obj = this.hiddenRenderObjects[i];
+            if (!isValid(obj) || obj.isDestroyed || !isValid(obj.node)) {
+                this.hiddenRenderObjects.splice(i, 1);
+                continue;
+            }
+            if (obj.isMovingBeyond(speedThresholdSqr)) {
+                obj.setRenderersEnabled(true);
+                this.hiddenRenderObjects.splice(i, 1);
+            }
+        }
+    };
 
     private onProjectileFired() {
         if (!this.isLevelActive()) return;
@@ -316,5 +423,6 @@ export class LevelManager extends Component {
             this.subscribedToScene = false;
         }
         this.unscheduleAllCallbacks();
+        this.hiddenRenderObjects.length = 0;
     }
 }

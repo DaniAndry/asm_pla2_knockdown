@@ -1,9 +1,14 @@
-import { _decorator, Component, PhysicsSystem, RigidBody, Node, isValid, CCFloat } from 'cc';
+import { _decorator, Component, PhysicsSystem, RigidBody, Node, isValid, CCFloat, debug } from 'cc';
 
 const { ccclass, property } = _decorator;
 
 @ccclass('PhysicsBootstrap')
 export class PhysicsBootstrap extends Component {
+    @property({
+        tooltip: 'Показывать поверх игры ту же панель статистики (FPS/Draw call/Physics/Renderer мс), что видно в редакторском Preview — но уже в РЕАЛЬНОМ билде (без оверхеда редактора). Включайте только для тестовой сборки, перед отправкой в рекламную сеть — выключите.'
+    })
+    debugShowStats: boolean = false;
+
     @property({ type: CCFloat, tooltip: 'Шаг физики. 1/60 = 0.0167. Для быстрых снарядов ставь 1/90 (0.0111)' })
     fixedTimeStep: number = 1 / 90;
 
@@ -25,19 +30,37 @@ export class PhysicsBootstrap extends Component {
     @property({ type: CCFloat, tooltip: 'Гравитация Y' })
     gravityY: number = -10;
 
+    // Если ps.simulate почему-то недоступен/падает (битый бэкенд физики в
+    // редакторе — уже бывало, см. историю с "ps.simulate is not a function"),
+    // компонент раньше просто крашился каждый кадр, и это приводило к тому,
+    // что его убирали со сцены целиком — а вместе с ним терялись и
+    // sleepThreshold/allowSleep/fixedTimeStep, которые к падению simulate()
+    // вообще не имеют отношения. Теперь: настройки применяются в onLoad()
+    // безусловно, а ручной клэмп-степ — best-effort, с авто-откатом на
+    // autoSimulation, если он не работает, вместо падения каждый кадр.
+    private canManualSimulate: boolean = false;
+
     onLoad() {
+        if (this.debugShowStats) {
+            try { debug.setDisplayStats(true); } catch {}
+        }
+
         const ps = PhysicsSystem.instance;
         if (!ps) return;
 
         ps.enable = true;
 
-        // ВАЖНО: раньше тут стоял autoSimulation = true. Встроенный accumulator
-        // движка при просадке FPS копит "долг" физического времени и потом
-        // пытается досимулировать его позже — это и даёт эффект "объекты летят
-        // медленно, а потом резко ускоряются", когда нагрузка спадает.
-        // Симулируем физику вручную в update() с зажатой (clamped) дельтой —
-        // тогда мир на тяжёлых кадрах просто плавно тормозит, без долга и рывков.
-        ps.autoSimulation = false;
+        this.canManualSimulate = typeof (ps as any).simulate === 'function';
+
+        // ВАЖНО: раньше тут всегда стоял autoSimulation = false. Встроенный
+        // accumulator движка при просадке FPS копит "долг" физического
+        // времени и потом пытается досимулировать его позже — это и даёт
+        // эффект "объекты летят медленно, а потом резко ускоряются", когда
+        // нагрузка спадает. Симулируем физику вручную в update() с зажатой
+        // (clamped) дельтой — мир на тяжёлых кадрах просто плавно тормозит,
+        // без долга и рывков. НО если ps.simulate недоступен — оставляем
+        // autoSimulation = true, иначе физика не будет считаться ВООБЩЕ.
+        ps.autoSimulation = !this.canManualSimulate;
 
         ps.fixedTimeStep = Math.max(1 / 240, this.fixedTimeStep);
         ps.maxSubSteps = Math.max(1, Math.floor(this.maxSubSteps));
@@ -47,14 +70,26 @@ export class PhysicsBootstrap extends Component {
 
 
         ps.gravity = ps.gravity;
+
+        if (!this.canManualSimulate) {
+            console.warn('[PhysicsBootstrap] ps.simulate недоступен — использую autoSimulation движка вместо ручного клэмп-степа (fixedTimeStep/maxSubSteps/allowSleep/sleepThreshold всё равно применены).');
+        }
     }
 
     update(dt: number) {
+        if (!this.canManualSimulate) return;
+
         const ps = PhysicsSystem.instance;
         if (!ps || !ps.enable) return;
 
         const clampedDt = Math.min(dt, Math.max(1 / 240, this.maxFrameTime));
-        ps.simulate(clampedDt);
+        try {
+            ps.simulate(clampedDt);
+        } catch (e) {
+            console.warn('[PhysicsBootstrap] ps.simulate упал в рантайме — переключаюсь на autoSimulation вместо падения каждый кадр.', e);
+            this.canManualSimulate = false;
+            ps.autoSimulation = true;
+        }
     }
 
 
