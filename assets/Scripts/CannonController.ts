@@ -333,7 +333,18 @@ export class CannonController extends Component {
         const physicsSystem = PhysicsSystem.instance;
         if (!physicsSystem) return;
         physicsSystem.enable = true;
-        physicsSystem.autoSimulation = true;
+
+        // autoSimulation здесь НЕ трогаем. Раньше тут стояло
+        // `autoSimulation = true`, и это конфликтовало с PhysicsBootstrap,
+        // который выставляет autoSimulation = false и сам шагает физику
+        // вручную в update() через ps.simulate() с зажатой дельтой.
+        // В итоге мир продвигался ДВА раза за кадр: один раз встроенным
+        // автошагом движка, второй — нашим ручным вызовом. Двойной шаг ломает
+        // устойчивость стека (двойная гравитация и двойной проход солвера за
+        // кадр), объекты постоянно микро-дёргаются, не могут устояться и
+        // из-за этого никогда не засыпают — сколько ни поднимай
+        // sleepThreshold и ни включай Allow Sleep.
+        // Режимом симуляции владеет только PhysicsBootstrap.
     }
 
 

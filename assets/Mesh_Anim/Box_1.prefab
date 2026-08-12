@@ -906,9 +906,9 @@
     },
     "_size": {
       "__type__": "cc.Vec3",
-      "x": 1.0006049871444702,
-      "y": 1,
-      "z": 1.0005871057510376
+      "x": 0.99,
+      "y": 0.99,
+      "z": 0.99
     },
     "_id": ""
   },
@@ -931,7 +931,7 @@
     "_group": 1,
     "_type": 1,
     "_mass": 1,
-    "_allowSleep": false,
+    "_allowSleep": true,
     "_linearDamping": 0.5,
     "_angularDamping": 0.5,
     "_useGravity": true,
@@ -965,14 +965,7 @@
     "__prefab": {
       "__id__": 57
     },
-    "health": 100,
-    "damageThreshold": 1,
-    "destroyThreshold": 10,
-    "impactDamageFactor": 1,
-    "minDamageSpeed": 0.5,
     "useHealthSystem": false,
-    "noHealthHitImpulseScale": 0.35,
-    "noHealthHitForwardBias": 0.2,
     "floorDestroyDelayMin": 0.3,
     "floorDestroyDelayMax": 0.6,
     "scorePrefab": null,
