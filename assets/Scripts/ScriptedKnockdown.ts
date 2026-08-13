@@ -69,6 +69,21 @@ export class ScriptedKnockdown extends Component {
     @property({ type: CCFloat, tooltip: 'Доля скорости снаряда, передаваемая блокам вдоль его направления' })
     forwardTransfer: number = 0.35;
 
+    @property({ type: CCFloat, tooltip: 'Потолок скорости удара, из которой считается импульс. Страховка от сбоев физики: без него один мусорный кадр отправлял всю пирамиду в камеру со скоростью 150+.' })
+    maxImpactSpeed: number = 100;
+
+    @property({ type: CCFloat, tooltip: 'Потолок горизонтальной скорости, которую может получить блок (м/с). Ящик не должен улетать за экран быстрее, чем это выглядит уместно.' })
+    maxBlockSpeed: number = 14;
+
+    @property({ type: CCFloat, tooltip: 'Сколько удара идёт ВДОЛЬ полёта снаряда (толкает от стрелка). Основная составляющая — держите её больше боковой, иначе ящики будут разлетаться в стороны, а не улетать от удара.' })
+    impactForwardShare: number = 1;
+
+    @property({ type: CCFloat, tooltip: 'Сколько удара идёт ПОПЕРЁК полёта (разброс вбок и вверх от линии выстрела). Назад снаряду блоки не летят никогда.' })
+    impactSideShare: number = 0.55;
+
+    @property({ tooltip: 'ВРЕМЕННО: печатать в консоль направление удара и полученные блоками скорости. Нужно, чтобы убедиться, что работает актуальная версия скрипта, а не старая из кэша редактора.' })
+    debug: boolean = false;
+
     @property({ type: CCFloat, tooltip: 'Максимальная угловая скорость кувырка (град/сек)' })
     maxSpin: number = 320;
 
@@ -109,6 +124,18 @@ export class ScriptedKnockdown extends Component {
     private blocks: Block[] = [];
     private falling: Block[] = [];
     private probeCursor: number = 0;
+    private anyHitHappened: boolean = false;
+    private lastSweepIndex: number = -1;
+
+    // Направление последнего удара (по горизонтали). Каскад и проверка опор
+    // используют его, чтобы НИКОГДА не отправлять ящик назад, в сторону
+    // стрелка: у обвала нет причин двигать блоки навстречу снаряду.
+    private impactDirX: number = 0;
+    private impactDirZ: number = -1;
+
+    // Кто именно роняет блок прямо сейчас — попадание, каскад или проверка
+    // опор. Нужно, чтобы в логе было видно источник неправильного вектора.
+    private knockSource: string = '?';
 
     // Все уровни живут в ОДНОЙ сцене и переключаются через level.active
     // (см. LevelSwitcher). Значит на сцене может быть несколько
@@ -156,6 +183,8 @@ export class ScriptedKnockdown extends Component {
     public rebuild() {
         this.blocks.length = 0;
         this.falling.length = 0;
+        this.probeCursor = 0;
+        this.anyHitHappened = false;
 
         const parent = isValid(this.destructiblesParent) ? this.destructiblesParent : this.node;
         const handlers = parent.getComponentsInChildren(UniversalCollisionHandler);
@@ -201,54 +230,48 @@ export class ScriptedKnockdown extends Component {
     private makeBlock(h: UniversalCollisionHandler): Block | null {
         const node = h.node;
 
-        // Локальная коробка блока (центр + полуразмеры) из BoxCollider, а если
-        // его нет — из границ меша.
-        let hx = 0.5, hy = 0.5, hz = 0.5;
-        let ox = 0, oy = 0, oz = 0;
+        const bb = { minX: Infinity, minY: Infinity, minZ: Infinity, maxX: -Infinity, maxY: -Infinity, maxZ: -Infinity };
 
+        // 1) Если BoxCollider есть — он самый точный источник размера.
         const box = node.getComponent(BoxCollider);
         if (isValid(box)) {
-            hx = Math.abs(box.size.x) * 0.5;
-            hy = Math.abs(box.size.y) * 0.5;
-            hz = Math.abs(box.size.z) * 0.5;
-            ox = box.center.x; oy = box.center.y; oz = box.center.z;
+            node.getWorldMatrix(_mat);
+            this.expandByLocalBox(bb, _mat,
+                box.center.x, box.center.y, box.center.z,
+                Math.abs(box.size.x) * 0.5, Math.abs(box.size.y) * 0.5, Math.abs(box.size.z) * 0.5);
         } else {
-            const mr = node.getComponent(MeshRenderer) || node.getComponentInChildren(MeshRenderer);
-            if (isValid(mr) && mr.mesh && mr.mesh.minPosition && mr.mesh.maxPosition) {
+            // 2) Коллайдера нет (удалён вручную при переходе на скриптовый
+            //    режим) — берём ОБЪЕДИНЕНИЕ границ ВСЕХ мешей блока.
+            //    ВАЖНО: раньше тут брался getComponentInChildren(MeshRenderer),
+            //    то есть ПЕРВЫЙ попавшийся меш. А блок в этих префабах собран
+            //    из нескольких кусков-осколков, и первый кусок — это малая
+            //    часть ящика. Коробка получалась крошечной: снаряд пролетал
+            //    мимо, а граф опор считал, что блоки не касаются друг друга,
+            //    и ронял уровень сам по себе.
+            const renderers = node.getComponentsInChildren(MeshRenderer);
+            for (let i = 0; i < renderers.length; i++) {
+                const mr = renderers[i];
+                if (!isValid(mr) || !isValid(mr.node) || !mr.mesh) continue;
                 const mn = mr.mesh.minPosition, mx = mr.mesh.maxPosition;
-                hx = Math.abs(mx.x - mn.x) * 0.5;
-                hy = Math.abs(mx.y - mn.y) * 0.5;
-                hz = Math.abs(mx.z - mn.z) * 0.5;
-                ox = (mx.x + mn.x) * 0.5;
-                oy = (mx.y + mn.y) * 0.5;
-                oz = (mx.z + mn.z) * 0.5;
+                if (!mn || !mx) continue;
+
+                mr.node.getWorldMatrix(_mat);
+                this.expandByLocalBox(bb, _mat,
+                    (mx.x + mn.x) * 0.5, (mx.y + mn.y) * 0.5, (mx.z + mn.z) * 0.5,
+                    Math.abs(mx.x - mn.x) * 0.5, Math.abs(mx.y - mn.y) * 0.5, Math.abs(mx.z - mn.z) * 0.5);
             }
         }
 
-        // ВАЖНО: гоняем 8 углов через мировую матрицу узла и берём min/max.
-        // Раньше я просто умножал полуразмеры на масштаб — и для любого
-        // ПОВЁРНУТОГО блока коробка получалась неверной. Из-за этого проверка
-        // опоры не находила соседа под блоком, считала его висящим и роняла —
-        // отсюда самопроизвольный развал уровня.
-        node.getWorldMatrix(_mat);
-
-        let minX = Infinity, minY = Infinity, minZ = Infinity;
-        let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
-
-        for (let i = 0; i < 8; i++) {
-            _corner.set(
-                ox + ((i & 1) ? hx : -hx),
-                oy + ((i & 2) ? hy : -hy),
-                oz + ((i & 4) ? hz : -hz)
-            );
-            Vec3.transformMat4(_corner, _corner, _mat);
-            if (_corner.x < minX) minX = _corner.x;
-            if (_corner.y < minY) minY = _corner.y;
-            if (_corner.z < minZ) minZ = _corner.z;
-            if (_corner.x > maxX) maxX = _corner.x;
-            if (_corner.y > maxY) maxY = _corner.y;
-            if (_corner.z > maxZ) maxZ = _corner.z;
+        // Ничего не нашли — считаем блок непригодным, чем городить коробку
+        // «на глаз» и потом гадать, почему он ведёт себя странно.
+        if (!isFinite(bb.minX) || !isFinite(bb.maxX)) {
+            console.warn(`[ScriptedKnockdown] У блока "${node.name}" не нашлось ни BoxCollider, ни меша — пропускаю.`);
+            return null;
         }
+
+        const minX = bb.minX, maxX = bb.maxX;
+        const minY = bb.minY, maxY = bb.maxY;
+        const minZ = bb.minZ, maxZ = bb.maxZ;
 
         const cx = (minX + maxX) * 0.5;
         const cy = (minY + maxY) * 0.5;
@@ -267,6 +290,34 @@ export class ScriptedKnockdown extends Component {
             ex: 0, ey: 0, ez: 0,
             delay: 0,
         };
+    }
+
+    /**
+     * Расширяет накопительный AABB восемью углами локальной коробки,
+     * прогнанными через мировую матрицу. Через матрицу — чтобы корректно
+     * учитывался ПОВОРОТ: умножение полуразмеров на масштаб для повёрнутого
+     * блока даёт неверную коробку.
+     */
+    private expandByLocalBox(
+        bb: { minX: number; minY: number; minZ: number; maxX: number; maxY: number; maxZ: number },
+        mat: Mat4,
+        ox: number, oy: number, oz: number,
+        hx: number, hy: number, hz: number
+    ) {
+        for (let i = 0; i < 8; i++) {
+            _corner.set(
+                ox + ((i & 1) ? hx : -hx),
+                oy + ((i & 2) ? hy : -hy),
+                oz + ((i & 4) ? hz : -hz)
+            );
+            Vec3.transformMat4(_corner, _corner, mat);
+            if (_corner.x < bb.minX) bb.minX = _corner.x;
+            if (_corner.y < bb.minY) bb.minY = _corner.y;
+            if (_corner.z < bb.minZ) bb.minZ = _corner.z;
+            if (_corner.x > bb.maxX) bb.maxX = _corner.x;
+            if (_corner.y > bb.maxY) bb.maxY = _corner.y;
+            if (_corner.z > bb.maxZ) bb.maxZ = _corner.z;
+        }
     }
 
     private stripPhysics(node: Node) {
@@ -334,30 +385,143 @@ export class ScriptedKnockdown extends Component {
      * Вызывается из ScriptedProjectileHit.
      */
     public reportHit(point: Vec3, dir: Vec3, speed: number) {
+        this.anyHitHappened = true;
+
+        // Второй рубеж на случай, если сверху всё-таки прилетела мусорная
+        // скорость: блок физически не должен получать импульс в сотни м/с.
+        speed = Math.min(Math.max(speed, 0), this.maxImpactSpeed);
+
+        const hl = Math.sqrt(dir.x * dir.x + dir.z * dir.z);
+        if (hl > 1e-4) {
+            this.impactDirX = dir.x / hl;
+            this.impactDirZ = dir.z / hl;
+        }
+
+        // ВРЕМЕННО печатается всегда (только в момент попадания, не каждый
+        // кадр) — чтобы точно видеть, какая версия скрипта работает и какие
+        // скорости она считает.
+        console.log(
+            `[ScriptedKnockdown v4] удар в (${point.x.toFixed(2)}, ${point.y.toFixed(2)}, ${point.z.toFixed(2)}) ` +
+            `напр полёта (${dir.x.toFixed(2)}, ${dir.y.toFixed(2)}, ${dir.z.toFixed(2)}) ` +
+            `impactDir XZ=(${this.impactDirX.toFixed(2)}, ${this.impactDirZ.toFixed(2)}) v=${speed.toFixed(1)}`
+        );
+
         const r = Math.max(0.01, this.hitRadius);
-        const r2 = r * r;
         const power = this.knockPower * Math.max(0.25, Math.min(3, speed / 12));
 
+        // 1) Блок, в который луч попал НАПРЯМУЮ, роняем всегда и безусловно.
+        //    Он известен точно (sweepSegment его запомнил), и полагаться тут
+        //    на радиус нельзя: точка попадания лежит на грани коробки,
+        //    раздутой на радиус снаряда, поэтому до центра ящика оттуда может
+        //    быть больше hitRadius — и прямое попадание не срабатывало.
+        const idx = this.lastSweepIndex;
+        if (idx >= 0 && idx < this.blocks.length) {
+            const hitBlock = this.blocks[idx];
+            if (!hitBlock.dead && !hitBlock.falling) {
+                this.knockSource = 'ПРЯМОЕ';
+                this.knockBlock(hitBlock, point, dir, speed, power * 1.35);
+            }
+        }
+
+        // 2) Соседей ищем по расстоянию от точки до КОРОБКИ блока, а не до его
+        //    центра — так радиус означает «на сколько вокруг удара разлетается»,
+        //    а не зависит от размера ящика.
         for (const b of this.blocks) {
             if (b.dead || b.falling) continue;
-            const dx = b.cx - point.x, dy = b.cy - point.y, dz = b.cz - point.z;
-            const d2 = dx * dx + dy * dy + dz * dz;
-            if (d2 > r2) continue;
 
-            const d = Math.sqrt(d2) || 0.0001;
-            const fall = 1 - d / r;                    // ближе к центру — сильнее
-            const k = power * (0.35 + fall);
+            const ddx = Math.max(b.minX - point.x, 0, point.x - b.maxX);
+            const ddy = Math.max(b.minY - point.y, 0, point.y - b.maxY);
+            const ddz = Math.max(b.minZ - point.z, 0, point.z - b.maxZ);
+            const d = Math.sqrt(ddx * ddx + ddy * ddy + ddz * ddz);
+            if (d > r) continue;
 
-            this.startFall(b, 0,
-                (dx / d) * k + dir.x * speed * this.forwardTransfer,
-                (dy / d) * k * 0.5 + Math.abs(dir.y) * speed * 0.1,
-                (dz / d) * k + dir.z * speed * this.forwardTransfer);
+            this.knockSource = 'радиус';
+            this.knockBlock(b, point, dir, speed, power * (0.35 + (1 - d / r)));
         }
+    }
+
+    /**
+     * Оттолкнуть блок ударом снаряда.
+     *
+     * ВАЖНО про направление. Раньше блок толкался просто «от точки удара к
+     * своему центру» — это радиальный взрыв, а не удар: ящик, стоящий ближе
+     * к пушке, чем точка попадания, получал вектор НАЗАД и летел на снаряд.
+     * По физике импульс передаётся вдоль полёта снаряда, а вбок уходит только
+     * поперечная составляющая. Поэтому раскладываем радиальный вектор на две
+     * части относительно направления полёта:
+     *   - продольную (вдоль dir) — берём только положительную, назад не тянем;
+     *   - поперечную — она и даёт разлёт в стороны от линии выстрела.
+     */
+    private knockBlock(b: Block, point: Vec3, dir: Vec3, speed: number, k: number) {
+        let rx = b.cx - point.x;
+        let ry = b.cy - point.y;
+        let rz = b.cz - point.z;
+        const rl = Math.sqrt(rx * rx + ry * ry + rz * rz);
+
+        // Поперечная составляющая радиального вектора (то, что перпендикулярно
+        // полёту снаряда). Именно она разбрасывает ящики вбок и вверх.
+        let px = 0, py = 0, pz = 0;
+        if (rl > 1e-4) {
+            rx /= rl; ry /= rl; rz /= rl;
+            const along = rx * dir.x + ry * dir.y + rz * dir.z;
+            px = rx - along * dir.x;
+            py = ry - along * dir.y;
+            pz = rz - along * dir.z;
+            const pl = Math.sqrt(px * px + py * py + pz * pz);
+            if (pl > 1e-4) { px /= pl; py /= pl; pz /= pl; }
+            else { px = 0; py = 0; pz = 0; }
+        }
+
+        const fwd = k * this.impactForwardShare + speed * this.forwardTransfer;
+        const side = k * this.impactSideShare;
+
+        this.startFall(b, 0,
+            dir.x * fwd + px * side,
+            // Вверх: поперечная составляющая по Y плюс подброс. Вниз по Y от
+            // удара не толкаем — иначе ящик вбивается в пол вместо разлёта.
+            Math.max(0, dir.y) * fwd + Math.max(0, py) * side + this.cascadeLift,
+            dir.z * fwd + pz * side);
+    }
+
+    /**
+     * Убирает из горизонтальной скорости составляющую, направленную ПРОТИВ
+     * выстрела. Ящик может уехать вбок или вперёд, но не навстречу снаряду.
+     * Возвращает исправленную пару в _knockTmp (x, z).
+     */
+    private forwardOnly(vx: number, vz: number): { x: number; z: number } {
+        const along = vx * this.impactDirX + vz * this.impactDirZ;
+        if (along >= 0) return { x: vx, z: vz };
+        // Вычитаем отрицательную продольную часть — остаётся только поперечная.
+        return {
+            x: vx - along * this.impactDirX,
+            z: vz - along * this.impactDirZ,
+        };
     }
 
     private startFall(b: Block, delay: number, vx: number, vy: number, vz: number) {
         if (b.dead || b.falling) return;
         if (this.maxFalling > 0 && this.falling.length >= this.maxFalling) return;
+
+        const beforeX = vx, beforeZ = vz;
+        const fixed = this.forwardOnly(vx, vz);
+        vx = fixed.x; vz = fixed.z;
+
+        // Жёсткий потолок на итоговую скорость блока — последний рубеж против
+        // любых аномалий: как бы ни посчитался импульс, ящик не улетит за
+        // экран пулей.
+        const hs = Math.sqrt(vx * vx + vz * vz);
+        if (hs > this.maxBlockSpeed) {
+            const s = this.maxBlockSpeed / hs;
+            vx *= s; vz *= s;
+        }
+        if (vy > this.maxBlockSpeed) vy = this.maxBlockSpeed;
+
+        const along = vx * this.impactDirX + vz * this.impactDirZ;
+        console.log(
+            `  [${b.node.name}] источник=${this.knockSource} v до=(${beforeX.toFixed(2)}, ${beforeZ.toFixed(2)}) ` +
+            `после=(${vx.toFixed(2)}, ${vy.toFixed(2)}, ${vz.toFixed(2)}) ` +
+            `вдоль удара=${along.toFixed(2)} ${along < -0.01 ? '⚠НАЗАД!' : 'ок'}`
+        );
 
         b.falling = true;
         b.delay = delay;
@@ -386,6 +550,7 @@ export class ScriptedKnockdown extends Component {
      * разброс, плюс небольшой подброс вверх — иначе выглядит как провал.
      */
     private startCascadeFall(b: Block, from: Block) {
+        this.knockSource = 'каскад';
         let dx = b.cx - from.cx;
         let dz = b.cz - from.cz;
         let len = Math.sqrt(dx * dx + dz * dz);
@@ -441,6 +606,13 @@ export class ScriptedKnockdown extends Component {
         const n = this.supportChecksPerFrame;
         if (n <= 0 || this.blocks.length === 0) return;
 
+        // Пока по уровню никто не бил, ронять нечего: исходная раскладка
+        // считается корректной по определению. Это жёсткая страховка от
+        // самопроизвольного развала на старте — если геометрия опор где-то
+        // посчитана неточно, уровень всё равно не рассыплется сам, а ошибка
+        // проявится только после первого попадания.
+        if (!this.anyHitHappened) return;
+
         const total = this.blocks.length;
         const count = Math.min(n, total);
 
@@ -451,6 +623,7 @@ export class ScriptedKnockdown extends Component {
             if (!isValid(b.node)) continue;
 
             if (!this.hasSupportBelow(b)) {
+                this.knockSource = 'опора';
                 // Опоры под ним нет — валим его как каскадный, чтобы он тоже
                 // разлетелся в сторону, а не осел строго вниз.
                 this.startFall(
@@ -525,6 +698,8 @@ export class ScriptedKnockdown extends Component {
         const invZ = dir.z !== 0 ? 1 / dir.z : Infinity;
 
         let best = -1;
+        let bestIdx = -1;
+        this.lastSweepIndex = -1;
 
         for (let i = 0; i < blocks.length; i++) {
             const b = blocks[i];
@@ -555,9 +730,15 @@ export class ScriptedKnockdown extends Component {
             if (t0 > t1) continue;
 
             if (t0 < 0) t0 = 0;
-            if (best < 0 || t0 < best) best = t0;
+            if (best < 0 || t0 < best) { best = t0; bestIdx = i; }
         }
 
+        // Запоминаем, в КАКОЙ блок попали. Раньше эта информация терялась:
+        // наружу отдавалось только расстояние, а reportHit пытался найти
+        // пострадавших заново по радиусу от точки попадания — и часто не
+        // находил вообще никого, потому что точка лежит на грани коробки,
+        // раздутой на радиус снаряда, и до центра ящика оттуда далеко.
+        this.lastSweepIndex = bestIdx;
         return best;
     }
 

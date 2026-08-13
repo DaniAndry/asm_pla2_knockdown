@@ -32,11 +32,20 @@ export class ScriptedProjectileHit extends Component {
     @property({ type: ScriptedKnockdown, tooltip: 'Необязательно. Обычно оставляйте пустым: снаряд сам берёт ScriptedKnockdown АКТИВНОГО уровня. Заполняйте, только если хотите жёстко прибить снаряд к конкретному уровню.' })
     knockdown: ScriptedKnockdown = null;
 
-    @property({ type: CCFloat, tooltip: 'Радиус снаряда: AABB блоков расширяются на эту величину, чтобы касание считалось попаданием' })
+    @property({
+        type: CCFloat,
+        tooltip: 'Радиус снаряда: коробки блоков расширяются на эту величину. Ставьте РЕАЛЬНЫЙ радиус мяча (у Projectile.prefab это 1 × масштаб 0.5 = 0.5). Больше реального — удар будет срабатывать заранее, на расстоянии.'
+    })
     projectileRadius: number = 0.5;
 
     @property({ type: CCFloat, tooltip: 'Ниже этой скорости попадание не засчитывается (м/с)' })
     minSpeed: number = 2;
+
+    @property({
+        type: CCFloat,
+        tooltip: 'Потолок правдоподобной скорости снаряда (м/с). Всё выше — это сбой физики или телепорт узла, а не выстрел: такой кадр полностью игнорируется. Ставьте с запасом над реальной скоростью выстрела (у вас ~66), но заметно ниже сотен.'
+    })
+    maxSpeed: number = 150;
 
     @property({ tooltip: 'Останавливать снаряд в точке попадания. ВЫКЛ = снаряд летит насквозь и сносит всё по пути (пушечное ядро).' })
     stopOnHit: boolean = false;
@@ -44,8 +53,11 @@ export class ScriptedProjectileHit extends Component {
     @property({ type: CCFloat, tooltip: 'Пауза между попаданиями одного снаряда (сек), чтобы один удар не засчитался несколько раз' })
     hitCooldown: number = 0.05;
 
-    @property({ type: CCFloat, tooltip: 'Упреждение: насколько продлить луч вперёд за текущую позицию снаряда. Ловит попадание на кадр раньше, чем снаряд визуально войдёт в блок — иначе на высокой скорости удар выглядит запоздалым.' })
-    lookAhead: number = 0.4;
+    @property({
+        type: CCFloat,
+        tooltip: 'Упреждение: продлить луч вперёд за текущую позицию снаряда. ВНИМАНИЕ: складывается с Projectile Radius — суммарно на столько удар срабатывает РАНЬШЕ касания. Держите 0, если удар выглядит преждевременным.'
+    })
+    lookAhead: number = 0;
 
     @property({ tooltip: 'ВРЕМЕННО: печатать в консоль состояние поиска попаданий (нашёлся ли реестр блоков, сколько их, куда идёт луч). Выключите, когда разберётесь.' })
     debug: boolean = false;
@@ -56,6 +68,18 @@ export class ScriptedProjectileHit extends Component {
     private hasPrev: boolean = false;
     private lastHit: number = 0;
     private readonly prev: Vec3 = new Vec3();
+
+    // Горизонтальное направление выстрела, запомненное на разгоне.
+    // Нужно потому, что после остановки/рикошета снаряд падает вертикально, и
+    // мгновенное направление становится (0,-1,0). С вертикальным направлением
+    // «вперёд» вырождается, горизонтальный толчок остаётся только радиальным —
+    // и ящики со стороны пушки летят НА пушку.
+    private launchX: number = 0;
+    private launchZ: number = -1;
+    private hasLaunchDir: boolean = false;
+
+    // Снаряд уже отработал удар и остановлен (stopOnHit) — больше не бьём.
+    private spent: boolean = false;
 
     onLoad() {
         this.rb = this.getComponent(RigidBody);
@@ -78,6 +102,8 @@ export class ScriptedProjectileHit extends Component {
     onEnable() {
         this.node.getWorldPosition(this.prev);
         this.hasPrev = true;
+        this.hasLaunchDir = false;
+        this.spent = false;
     }
 
     onDisable() {
@@ -85,6 +111,11 @@ export class ScriptedProjectileHit extends Component {
     }
 
     lateUpdate(deltaTime: number) {
+        // Снаряд уже ударил и остановлен — он больше не оружие, а просто
+        // падающий мяч. Раньше он продолжал «бить» каждый кадр во время
+        // вертикального падения, задавая удару направление ВНИЗ.
+        if (this.spent) return;
+
         if (!this.hasPrev) {
             if (this.debug) console.warn('[ScriptedProjectileHit] hasPrev=false — onEnable не отработал, поиск попаданий не идёт.');
             return;
@@ -106,6 +137,20 @@ export class ScriptedProjectileHit extends Component {
             Vec3.subtract(_vel, _cur, this.prev);
         }
         const speed = _vel.length();
+
+        // Потолок скорости. Снаряд не может лететь сотни метров в секунду:
+        // такие значения означают, что физику "взорвало" или узел
+        // телепортировали. Именно на таком кадре (v=2742) луч длиной 60 метров
+        // прошивал уровень насквозь В ОБРАТНУЮ сторону, и вся пирамида
+        // получала импульс на камеру.
+        if (speed > this.maxSpeed) {
+            if (this.debug) {
+                console.warn(`[ScriptedProjectileHit] скорость ${speed.toFixed(1)} > потолка ${this.maxSpeed} — сбой физики, кадр игнорирую.`);
+            }
+            this.prev.set(_cur);
+            return;
+        }
+
         if (speed < this.minSpeed) {
             if (this.debug && (this.dbgFrames++ % 60) === 0) {
                 console.log(`[ScriptedProjectileHit] скорость ${speed.toFixed(2)} < minSpeed ${this.minSpeed} — луч не бросаю. ${kd.describe()}`);
@@ -126,10 +171,13 @@ export class ScriptedProjectileHit extends Component {
 
         // Защита от телепорта: между выстрелами снаряд перекидывается к дулу
         // (CannonController выставляет ему worldPosition пушки). Такой скачок
-        // — не полёт, и трассировать его нельзя: луч длиной через полсцены
-        // «попадёт» в случайный блок. Отрезок за кадр физически не может быть
-        // сильно длиннее, чем скорость × dt.
-        const plausible = speed * Math.max(1 / 240, deltaTime) * 3 + this.lookAhead + 1;
+        // — не полёт, и трассировать его нельзя.
+        //
+        // ВАЖНО: предел считается от ПОТОЛКА скорости, а не от текущей. Раньше
+        // здесь стояло speed × dt × 3, и когда физика выдавала мусорную
+        // скорость (2742 м/с), допустимая длина раздувалась до сотен метров —
+        // заслон пропускал скачок в 60 метров, который и бил по всему уровню.
+        const plausible = this.maxSpeed * Math.max(1 / 240, deltaTime) * 2 + this.lookAhead + 0.5;
         if (segLen > plausible) {
             if (this.debug) {
                 console.log(`[ScriptedProjectileHit] скачок ${segLen.toFixed(2)} > ожидаемых ${plausible.toFixed(2)} — телепорт, кадр пропускаю.`);
@@ -139,6 +187,22 @@ export class ScriptedProjectileHit extends Component {
         }
 
         _dir.multiplyScalar(1 / segLen);
+
+        // Запоминаем горизонтальное направление, пока снаряд реально летит
+        // вперёд, а не падает.
+        const hl = Math.sqrt(_dir.x * _dir.x + _dir.z * _dir.z);
+        if (hl > 0.35) {
+            this.launchX = _dir.x / hl;
+            this.launchZ = _dir.z / hl;
+            this.hasLaunchDir = true;
+        } else if (this.hasLaunchDir) {
+            // Падение почти вертикальное: подставляем горизонталь выстрела,
+            // иначе удар «вниз» вырождает понятие «вперёд» и блоки получают
+            // чисто радиальный толчок — в том числе назад, на стрелка.
+            _dir.x = this.launchX * 0.6;
+            _dir.z = this.launchZ * 0.6;
+            _dir.normalize();
+        }
 
         // Луч бросаем каждый кадр по отрезку, реально пройденному за кадр,
         // плюс упреждение вперёд — чтобы попадание засчитывалось на кадр
@@ -167,6 +231,7 @@ export class ScriptedProjectileHit extends Component {
 
             if (this.stopOnHit && isValid(this.rb)) {
                 this.rb.setLinearVelocity(Vec3.ZERO);
+                this.spent = true;
             }
         }
 
