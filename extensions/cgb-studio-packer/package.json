@@ -1,0 +1,118 @@
+{
+  "name": "cgb-studio-packer",
+  "title": "CGB Studio packer",
+  "version": "1.8.0",
+  "package_version": 2,
+  "description": "Build Cocos Creator web-mobile projects as network-ready single HTML playable ads.",
+  "author": "CGB Studio",
+  "main": "./dist/main.js",
+  "editor": ">=3.8.3 <4",
+  "panels": {
+    "default": {
+      "title": "CGB Studio packer",
+      "type": "simple",
+      "main": "./dist/panel/index.js",
+      "flags": {
+        "save": false,
+        "resizable": true
+      },
+      "size": {
+        "min-width": 720,
+        "min-height": 620,
+        "width": 1040,
+        "height": 820
+      }
+    }
+  },
+  "contributions": {
+    "builder": "./dist/builder.js",
+    "messages": {
+      "open-panel": {
+        "methods": [
+          "openPanel"
+        ]
+      },
+      "get-state": {
+        "methods": [
+          "getState"
+        ]
+      },
+      "save-settings": {
+        "methods": [
+          "saveSettings"
+        ]
+      },
+      "build": {
+        "methods": [
+          "build"
+        ]
+      },
+      "estimate-size": {
+        "methods": [
+          "estimateSize"
+        ]
+      },
+      "pack-existing": {
+        "methods": [
+          "packExisting"
+        ]
+      },
+      "select-splash-asset": {
+        "methods": [
+          "selectSplashAsset"
+        ]
+      },
+      "duplicate-splash-assets": {
+        "methods": [
+          "duplicateSplashAssets"
+        ]
+      },
+      "preview": {
+        "methods": [
+          "preview"
+        ]
+      },
+      "open-output": {
+        "methods": [
+          "openOutput"
+        ]
+      },
+      "open-developer-overrides": {
+        "methods": [
+          "openDeveloperOverrides"
+        ]
+      },
+      "install-ads-manager": {
+        "methods": [
+          "installAdsManager"
+        ]
+      }
+    },
+    "menu": [
+      {
+        "path": "i18n:menu.extension",
+        "label": "CGB Studio packer",
+        "message": "open-panel"
+      }
+    ]
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch",
+    "test": "npm run build && node --test --test-concurrency=1 test/*.test.js"
+  },
+  "dependencies": {
+    "cheerio": "1.0.0-rc.12",
+    "javascript-obfuscator": "5.5.0",
+    "jszip": "3.10.1",
+    "mime-types": "2.1.35"
+  },
+  "devDependencies": {
+    "@types/mime-types": "2.1.4",
+    "@types/node": "20.14.12",
+    "typescript": "4.9.5"
+  },
+  "overrides": {
+    "brace-expansion": "2.0.2"
+  }
+}

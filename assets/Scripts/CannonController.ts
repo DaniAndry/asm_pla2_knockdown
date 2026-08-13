@@ -36,7 +36,7 @@ export class CannonController extends Component {
     @property({ tooltip: 'Пауза между выстрелами при удержании (сек)' })
     fireHoldInterval: number = 0.3;
     @property({ tooltip: 'Сколько секунд дать стеку осесть, затем заморозить физику до первого выстрела' })
-    settleDuration: number = 1.2;
+    settleDuration: number = 0;
 
     @property({
         tooltip: 'ВЫКЛ = не замораживать стек в Kinematic перед выстрелом, а положиться на штатный сон физики. Заморозка писалась когда sleepThreshold был 0 и тела не засыпали НИКОГДА — она была костылём вместо сна. Сейчас сон работает, и заморозка вредит: unfreeze при каждом выстреле будит все 400+ тел разом, после чего они заново оседают и засыпают, сжигая солвер. Спящее тело так же неподвижно, но дешевле и не требует массового пробуждения.'
@@ -305,7 +305,6 @@ export class CannonController extends Component {
         this.physicsUnlocked = false;
         SoundManager.disableHits();
         this.ensurePhysicsWorldEnabled();
-        this.unfreezePhysics();
 
         const token = ++this.settleToken;
         const duration = Math.max(0, this.settleDuration);
@@ -313,6 +312,11 @@ export class CannonController extends Component {
             this.freezePhysics();
             return;
         }
+
+        // A non-zero settling period is an explicit authoring choice. Only in
+        // this case are the held bodies released globally; otherwise a large
+        // level starts frozen and wakes only around the actual impact.
+        this.unfreezePhysics();
 
         this.scheduleOnce(() => {
             if (token !== this.settleToken || this.physicsUnlocked) return;
@@ -326,6 +330,9 @@ export class CannonController extends Component {
         this.settleToken++;
         SoundManager.enableHits();
         this.ensurePhysicsWorldEnabled();
+        // Held bodies stay Dynamic and sleeping.  Do not wake the entire
+        // level here: Box3D will wake the contact island that the projectile
+        // actually touches, preserving the impact impulse.
         this.unfreezePhysics();
     }
 
@@ -398,7 +405,12 @@ export class CannonController extends Component {
 
                 rb.setLinearVelocity(Vec3.ZERO);
                 rb.setAngularVelocity(Vec3.ZERO);
-                rb.type = RigidBody.Type.KINEMATIC;
+                // Kinematic bodies have infinite mass for a Dynamic projectile:
+                // the first core therefore bounced as if it hit a wall and any
+                // unsupported body outside the wake radius remained suspended.
+                // Sleeping Dynamic bodies are equally cheap at rest, but Box3D
+                // wakes the contacted island and solves the real impulse.
+                rb.sleep();
                 this.frozenBodies.push(rb);
             } catch {
 
@@ -408,35 +420,11 @@ export class CannonController extends Component {
 
     private unfreezePhysics() {
 
-        // Возвращаем тип тем телам, которые МЫ сами заморозили. wakeUp() тут
-        // намеренно НЕ вызывается: за время прицеливания в мире ничего не
-        // изменилось, конфигурация стека та же, что была в момент засыпания —
-        // значит спящие могут спокойно спать дальше, а физика сама разбудит
-        // ровно те тела, которых реально коснётся снаряд или падающий сосед.
-        for (const rb of this.frozenBodies) {
-            if (!isValid(rb) || !rb.enabled) continue;
-            try {
-                rb.type = RigidBody.Type.DYNAMIC;
-            } catch {
-
-            }
-        }
+        // freezePhysics() keeps bodies Dynamic and only puts them to sleep, so
+        // there is deliberately no type conversion or global wake-up here.
+        // The physics backend wakes only bodies reached by the impact cascade.
         this.frozenBodies.length = 0;
 
 
-        // Подчищающий проход на случай, если что-то осталось Kinematic не по
-        // нашей вине. Раньше здесь на КАЖДЫЙ выстрел вызывался wakeUp() для
-        // всех 400+ тел уровня — это в одиночку убивало весь эффект сна:
-        // вся пирамида просыпалась на каждом выстреле и потом заново оседала
-        // и засыпала, сжигая солвер. Восстанавливаем только тип, не будим.
-        this.forEachGameplayBody((rb) => {
-            try {
-                if (rb.type !== RigidBody.Type.DYNAMIC) {
-                    rb.type = RigidBody.Type.DYNAMIC;
-                }
-            } catch {
-
-            }
-        });
     }
 }

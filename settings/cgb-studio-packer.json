@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 6,
+  "assetEncoding": "base64",
+  "obfuscate": true,
+  "autoPackCocosBuilds": true,
+  "createTargetSubfolders": false,
+  "networks": {
+    "default": false,
+    "applovin": true,
+    "ironsource": false,
+    "mraid_universal": false,
+    "ironsource_dapi": false,
+    "mintegral": false,
+    "unity": false,
+    "google": false,
+    "facebook": false,
+    "pangle": false,
+    "liftoff": false,
+    "moloco": false,
+    "tiktok": false,
+    "vungle": false,
+    "bigo": false,
+    "kwai": false,
+    "snapchat": false,
+    "adcolony": false
+  },
+  "buildDefaults": {
+    "name": "ASM - pla2",
+    "buildPath": "project://build",
+    "outputName": "web-mobile",
+    "orientation": "auto",
+    "engineModulesConfigKey": "defaultConfig",
+    "nativeCodeBundleMode": "wasm"
+  },
+  "variants": [
+    {
+      "id": "d8c3a471-ceb8-439e-a6f7-653cdeae093b",
+      "name": "asm_pla2_knockdown",
+      "selected": true,
+      "nativeTaskId": "1786613227355",
+      "scenes": [
+        {
+          "url": "db://assets/GameScene.scene",
+          "uuid": "6a8df4b2-7fcb-4227-a855-4daece84e0ac",
+          "name": "GameScene.scene"
+        }
+      ],
+      "startScene": "6a8df4b2-7fcb-4227-a855-4daece84e0ac",
+      "splash": {
+        "mode": "inherit",
+        "displayRatio": 1,
+        "logo": {
+          "type": "default"
+        },
+        "background": {
+          "type": "default",
+          "color": {
+            "x": 0.01568627450980392,
+            "y": 0.03529411764705882,
+            "z": 0.0392156862745098,
+            "w": 1
+          }
+        }
+      },
+      "snapchat": {
+        "cdnFolder": "ce61e76b-a9f1-4c9c-b686-f3fc9aece983",
+        "configJson": "{}"
+      }
+    }
+  ],
+  "activeVariantId": "d8c3a471-ceb8-439e-a6f7-653cdeae093b"
+}

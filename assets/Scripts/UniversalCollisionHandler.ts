@@ -36,6 +36,11 @@ const _renderCheckVel = new Vec3();
 
 interface WakeRequest { x: number; y: number; z: number; r2: number; }
 
+interface PreparedPiecePhysics {
+    rigidBody: RigidBody;
+    collider: BoxCollider;
+}
+
 @ccclass('UniversalCollisionHandler')
 export class UniversalCollisionHandler extends Component {
     @property({
@@ -264,8 +269,18 @@ export class UniversalCollisionHandler extends Component {
 
         const isProj = this.isProjectile(otherCollider);
         if (isProj) {
+            this.node.getWorldPosition(_tmpPos);
+            UniversalCollisionHandler.queueWake(_tmpPos, this.wakeRadius);
             SoundManager.notifyHit();
             this.playHitSound();
+        } else {
+            // Wake only immediate sleeping neighbours. They remain Dynamic,
+            // so their contact constraints can propagate the real collapse.
+            const otherBody = otherCollider.attachedRigidBody;
+            if (isValid(otherBody) && otherBody.isDynamic && !otherBody.isSleeping) {
+                this.node.getWorldPosition(_tmpPos);
+                UniversalCollisionHandler.queueWake(_tmpPos, this.wakeRadius);
+            }
         }
 
         // Упрощённая логика (без health/порогов урона):
@@ -290,6 +305,9 @@ export class UniversalCollisionHandler extends Component {
 
         SoundManager.notifyHit();
         this.playHitSound();
+
+        this.node.getWorldPosition(_tmpPos);
+        UniversalCollisionHandler.queueWake(_tmpPos, this.wakeRadius);
 
         // См. комментарий в onCollisionEnter. applyExternalHit всегда
         // вызывается из ProjectileCCD (sweep-попадание снаряда), так что
@@ -684,9 +702,24 @@ export class UniversalCollisionHandler extends Component {
             // жизненного цикла. А раз parent не меняется, мировые координаты
             // куска вообще не сдвигаются никакой ручной математикой — он остаётся
             // ровно там, где визуально был.
-            piece.active = true;
-
-            const pieceRb = this.ensurePieceRigidBody(piece);
+            let pieceRb: RigidBody | null = null;
+            if (!piece.activeInHierarchy) {
+                // Box3D 3.8.8 crashes if a RigidBody is added after an enabled
+                // collider has already created its shared body. Prepare dormant
+                // fragments while they are inactive, then enable the collider
+                // only after the RigidBody has completed its activation.
+                const prepared = this.prepareInactivePiecePhysics(piece);
+                if (prepared) {
+                    piece.active = true;
+                    pieceRb = this.configurePieceRigidBody(prepared.rigidBody);
+                    if (pieceRb) prepared.collider.enabled = true;
+                }
+            } else {
+                // An active fragment may safely participate only if it already
+                // owns a body. Adding one here is the Box3D initialization bug
+                // described above, so it falls back to the visual fade below.
+                pieceRb = this.ensureActivePieceRigidBody(piece);
+            }
             if (!pieceRb) {
                 spawned.push(piece);
                 continue;
@@ -814,8 +847,13 @@ export class UniversalCollisionHandler extends Component {
     }
 
 
-    private ensurePieceRigidBody(piece: Node): RigidBody | null {
+    /**
+     * Sets up an inactive fragment without letting a collider create a static
+     * Box3D shared body before its RigidBody is initialized.
+     */
+    private prepareInactivePiecePhysics(piece: Node): PreparedPiecePhysics | null {
         if (!isValid(piece)) return null;
+        if (piece.activeInHierarchy) return null;
 
         const allCols = piece.getComponentsInChildren(Collider);
         for (let i = 0; i < allCols.length; i++) {
@@ -828,6 +866,7 @@ export class UniversalCollisionHandler extends Component {
         ) / 3;
 
         let host = piece;
+        let box: BoxCollider;
         const boxes = piece.getComponentsInChildren(BoxCollider);
 
         if (scaleMag < 0.05 && boxes.length > 0) {
@@ -843,11 +882,11 @@ export class UniversalCollisionHandler extends Component {
                     best = b;
                 }
             }
-            best.enabled = true;
             host = best.node;
+            box = best;
         } else {
 
-            let box = piece.getComponent(BoxCollider);
+            box = piece.getComponent(BoxCollider);
             if (!box) {
                 box = piece.addComponent(BoxCollider);
             }
@@ -873,14 +912,24 @@ export class UniversalCollisionHandler extends Component {
             }
             box.size = size;
             box.center = center;
-            box.enabled = true;
             host = piece;
         }
+
+        // Keep every shape disabled until the body is active. This is required
+        // by Box3D's component lifecycle, not just a collision preference.
+        box.enabled = false;
 
         let rb = host.getComponent(RigidBody);
         if (!rb) {
             rb = host.addComponent(RigidBody);
         }
+        if (!isValid(rb)) return null;
+
+        return { rigidBody: rb, collider: box };
+    }
+
+    /** Configures a body only after its backend wrapper has been initialized. */
+    private configurePieceRigidBody(rb: RigidBody): RigidBody | null {
         if (!isValid(rb)) return null;
 
         rb.enabled = true;
@@ -909,6 +958,81 @@ export class UniversalCollisionHandler extends Component {
         return rb;
     }
 
+    /**
+     * Active fragments cannot receive a new body with Box3D safely. Existing
+     * bodies are fine; their collider is enabled only after they are configured.
+     */
+    private ensureActivePieceRigidBody(piece: Node): RigidBody | null {
+        if (!isValid(piece)) return null;
+
+        const allCols = piece.getComponentsInChildren(Collider);
+        for (let i = 0; i < allCols.length; i++) {
+            if (isValid(allCols[i])) allCols[i].enabled = false;
+        }
+
+        piece.getWorldScale(_tmpScale);
+        const scaleMag = (
+            Math.abs(_tmpScale.x) + Math.abs(_tmpScale.y) + Math.abs(_tmpScale.z)
+        ) / 3;
+
+        let host = piece;
+        let box: BoxCollider;
+        const boxes = piece.getComponentsInChildren(BoxCollider);
+
+        if (scaleMag < 0.05 && boxes.length > 0) {
+            let best = boxes[0];
+            let bestVol = Number.POSITIVE_INFINITY;
+            for (let i = 0; i < boxes.length; i++) {
+                const candidate = boxes[i];
+                if (!isValid(candidate)) continue;
+                const vol = Math.abs(candidate.size.x * candidate.size.y * candidate.size.z);
+                if (vol > 1e-6 && vol < bestVol) {
+                    bestVol = vol;
+                    best = candidate;
+                }
+            }
+            host = best.node;
+            box = best;
+        } else {
+            box = piece.getComponent(BoxCollider);
+            if (!box) {
+                // The existing body was initialized before this shape, so this
+                // order is safe even while the node is active.
+                const existingBody = piece.getComponent(RigidBody);
+                if (!existingBody) return null;
+                box = piece.addComponent(BoxCollider);
+            }
+
+            const size = new Vec3(0.3, 0.3, 0.3);
+            const center = new Vec3();
+            const mr = piece.getComponent(MeshRenderer) || piece.getComponentInChildren(MeshRenderer);
+            if (isValid(mr) && mr.mesh) {
+                const min = mr.mesh.minPosition;
+                const max = mr.mesh.maxPosition;
+                if (min && max) {
+                    size.set(
+                        Math.max(0.06, Math.abs(max.x - min.x) * 0.85),
+                        Math.max(0.06, Math.abs(max.y - min.y) * 0.85),
+                        Math.max(0.06, Math.abs(max.z - min.z) * 0.85),
+                    );
+                    center.set(
+                        (max.x + min.x) * 0.5,
+                        (max.y + min.y) * 0.5,
+                        (max.z + min.z) * 0.5,
+                    );
+                }
+            }
+            box.size = size;
+            box.center = center;
+            host = piece;
+        }
+
+        const rb = host.getComponent(RigidBody);
+        const configured = rb ? this.configurePieceRigidBody(rb) : null;
+        if (configured) box.enabled = true;
+        return configured;
+    }
+
     private schedulePieceLifetime(piece: Node, life: number, fadeDur: number) {
         if (!isValid(piece)) return;
 
@@ -925,7 +1049,7 @@ export class UniversalCollisionHandler extends Component {
             .delay(life)
             .call(() => {
                 if (!isValid(piece)) return;
-                const pieceRb = piece.getComponent(RigidBody);
+                const pieceRb = piece.getComponentInChildren(RigidBody);
                 if (isValid(pieceRb)) {
                     try {
                         pieceRb.setLinearVelocity(Vec3.ZERO);

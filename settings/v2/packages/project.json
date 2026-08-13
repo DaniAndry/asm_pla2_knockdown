@@ -7,13 +7,13 @@
     }
   ],
   "physics": {
-    "fixedTimeStep": 0.022,
+    "fixedTimeStep": 0.03333333333333333,
     "autoSimulation": true,
     "gravity": {
       "y": -25
     },
     "sleepThreshold": 0.9,
-    "maxSubSteps": 2,
+    "maxSubSteps": 1,
     "collisionGroups": [
       {
         "index": 1,

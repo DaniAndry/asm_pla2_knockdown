@@ -1,0 +1,262 @@
+import { ADAPTERS, NetworkAdapter } from './adapters';
+import { NetworkId, PackerSettings } from '../types';
+
+export interface OutputProfile {
+  key: string;
+  networkId?: NetworkId;
+  directory: string;
+  outputBaseName: string;
+  adapter: NetworkAdapter;
+  compressed: boolean;
+  zip: boolean;
+  splitResources?: boolean;
+  zipName?: string;
+  metaHtml?: string;
+  config?: Record<string, unknown>;
+  thumbnailName?: string;
+  snapchatMode?: 'inline' | 'cdn';
+}
+
+export const OUTPUT_PROFILES: OutputProfile[] = [
+  {
+    key: 'default',
+    networkId: 'default',
+    directory: 'default',
+    outputBaseName: 'default',
+    adapter: ADAPTERS.common,
+    compressed: true,
+    zip: false,
+  },
+  {
+    key: 'applovin',
+    networkId: 'applovin',
+    directory: 'applovin',
+    outputBaseName: 'applovin',
+    adapter: ADAPTERS.applovin,
+    compressed: true,
+    zip: false,
+  },
+  {
+    key: 'ironsource',
+    networkId: 'ironsource',
+    directory: 'ironsource',
+    outputBaseName: 'ironsource',
+    adapter: ADAPTERS.ironsource,
+    compressed: true,
+    zip: false,
+  },
+  {
+    key: 'mraid_universal',
+    networkId: 'mraid_universal',
+    directory: 'mraid-universal',
+    outputBaseName: 'mraid_universal',
+    adapter: ADAPTERS.mraid_universal,
+    compressed: true,
+    zip: false,
+  },
+  {
+    key: 'ironsource_dapi',
+    networkId: 'ironsource_dapi',
+    directory: 'ironsource-dapi',
+    outputBaseName: 'ironsource_dapi',
+    adapter: ADAPTERS.ironsource_dapi,
+    compressed: true,
+    zip: false,
+  },
+  {
+    key: 'mintegral',
+    networkId: 'mintegral',
+    directory: 'mintegral',
+    outputBaseName: 'mintegral',
+    adapter: ADAPTERS.mintegral,
+    compressed: false,
+    zip: true,
+  },
+  {
+    key: 'unity',
+    networkId: 'unity',
+    directory: 'unity',
+    outputBaseName: 'unity',
+    adapter: ADAPTERS.unity,
+    compressed: true,
+    zip: false,
+  },
+  {
+    key: 'google',
+    networkId: 'google',
+    directory: 'google',
+    outputBaseName: 'google',
+    adapter: ADAPTERS.google,
+    compressed: true,
+    zip: true,
+    metaHtml: '<meta name="ad.orientation" content="portrait,landscape">',
+  },
+  {
+    key: 'google_portrait',
+    networkId: 'google',
+    directory: 'google',
+    outputBaseName: 'google_portrait',
+    zipName: 'google_portrait',
+    adapter: ADAPTERS.google,
+    compressed: true,
+    zip: true,
+    metaHtml: '<meta name="ad.size" content="width=320,height=480">',
+  },
+  {
+    key: 'google_landscape',
+    networkId: 'google',
+    directory: 'google',
+    outputBaseName: 'google_landscape',
+    zipName: 'google_landscape',
+    adapter: ADAPTERS.google,
+    compressed: true,
+    zip: true,
+    metaHtml: '<meta name="ad.size" content="width=480,height=320">',
+  },
+  {
+    key: 'facebook_html',
+    networkId: 'facebook',
+    directory: 'facebook',
+    outputBaseName: 'facebook',
+    adapter: ADAPTERS.facebook,
+    compressed: true,
+    zip: false,
+  },
+  {
+    key: 'facebook_zip',
+    networkId: 'facebook',
+    directory: 'facebook',
+    outputBaseName: 'facebook',
+    adapter: ADAPTERS.facebook,
+    compressed: true,
+    zip: true,
+    splitResources: true,
+  },
+  {
+    key: 'pangle',
+    networkId: 'pangle',
+    directory: 'pangle',
+    outputBaseName: 'pangle',
+    adapter: ADAPTERS.pangle,
+    compressed: false,
+    zip: true,
+    config: { playable_orientation: 0 },
+  },
+  {
+    key: 'pangle_portrait',
+    networkId: 'pangle',
+    directory: 'pangle',
+    outputBaseName: 'pangle_portrait',
+    adapter: ADAPTERS.pangle,
+    compressed: false,
+    zip: true,
+    config: { playable_orientation: 1 },
+  },
+  {
+    key: 'pangle_landscape',
+    networkId: 'pangle',
+    directory: 'pangle',
+    outputBaseName: 'pangle_landscape',
+    adapter: ADAPTERS.pangle,
+    compressed: false,
+    zip: true,
+    config: { playable_orientation: 2 },
+  },
+  {
+    key: 'liftoff',
+    networkId: 'liftoff',
+    directory: 'liftoff',
+    outputBaseName: 'liftoff',
+    adapter: ADAPTERS.liftoff,
+    compressed: false,
+    zip: true,
+  },
+  {
+    key: 'moloco',
+    networkId: 'moloco',
+    directory: 'moloco',
+    outputBaseName: 'moloco',
+    adapter: ADAPTERS.moloco,
+    compressed: true,
+    zip: false,
+  },
+  {
+    key: 'tiktok',
+    networkId: 'tiktok',
+    directory: 'tiktok',
+    outputBaseName: 'tiktok',
+    adapter: ADAPTERS.tiktok,
+    compressed: false,
+    zip: true,
+  },
+  {
+    key: 'vungle',
+    networkId: 'vungle',
+    directory: 'vungle',
+    outputBaseName: 'vungle',
+    adapter: ADAPTERS.vungle,
+    compressed: false,
+    zip: true,
+  },
+  {
+    key: 'bigo',
+    networkId: 'bigo',
+    directory: 'bigo',
+    outputBaseName: 'bigo',
+    adapter: ADAPTERS.bigo,
+    compressed: false,
+    zip: true,
+    config: { orientation: 0 },
+  },
+  {
+    key: 'kwai',
+    networkId: 'kwai',
+    directory: 'kwai',
+    outputBaseName: 'kwai',
+    adapter: ADAPTERS.kwai,
+    compressed: false,
+    zip: true,
+    config: {
+      name: 'Playable',
+      version: '0.1.0',
+      thumbnailName: 'thumbnail_cover.jpg',
+    },
+    thumbnailName: 'thumbnail_cover.jpg',
+  },
+  {
+    key: 'snapchat',
+    networkId: 'snapchat',
+    directory: 'snapchat',
+    outputBaseName: 'snapchat',
+    adapter: ADAPTERS.snapchat,
+    compressed: true,
+    zip: true,
+    snapchatMode: 'inline',
+  },
+  {
+    key: 'snapchat_cdn',
+    networkId: 'snapchat',
+    directory: 'snapchat',
+    outputBaseName: 'snapchat_cdn',
+    adapter: ADAPTERS.snapchat,
+    compressed: true,
+    zip: true,
+    splitResources: true,
+    snapchatMode: 'cdn',
+  },
+  {
+    key: 'adcolony',
+    networkId: 'adcolony',
+    directory: 'adcolony',
+    outputBaseName: 'adcolony',
+    adapter: ADAPTERS.adcolony,
+    compressed: true,
+    zip: false,
+  },
+];
+
+export function getEnabledProfiles(settings: PackerSettings): OutputProfile[] {
+  return OUTPUT_PROFILES.filter(
+    (profile) => !profile.networkId || settings.networks[profile.networkId],
+  );
+}

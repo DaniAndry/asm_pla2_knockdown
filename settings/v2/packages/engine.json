@@ -42,7 +42,7 @@
             "_value": false
           },
           "graphics": {
-            "_value": false
+            "_value": true
           },
           "ui-skew": {
             "_value": false
@@ -58,7 +58,7 @@
           },
           "physics": {
             "_value": true,
-            "_option": "physics-ammo"
+            "_option": "physics-box3d"
           },
           "physics-ammo": {
             "_value": true,
@@ -69,6 +69,12 @@
           "physics-cannon": {
             "_value": false
           },
+          "physics-box3d": {
+            "_value": true,
+            "_flags": {
+              "LOAD_BOX3D_MANUALLY": false
+            }
+          },
           "physics-physx": {
             "_value": false,
             "_flags": {
@@ -77,6 +83,9 @@
           },
           "physics-builtin": {
             "_value": false
+          },
+          "physics-box3d-extras": {
+            "_value": true
           },
           "physics-2d": {
             "_value": false,
@@ -110,7 +119,7 @@
             "_value": true
           },
           "geometry-renderer": {
-            "_value": false
+            "_value": true
           },
           "debug-renderer": {
             "_value": false
@@ -191,7 +200,7 @@
           }
         },
         "flags": {
-          "LOAD_BULLET_MANUALLY": false
+          "LOAD_BOX3D_MANUALLY": false
         },
         "includeModules": [
           "2d",
@@ -201,11 +210,14 @@
           "audio",
           "base",
           "custom-pipeline",
+          "geometry-renderer",
           "gfx-webgl",
+          "graphics",
           "meshopt",
           "occlusion-query",
           "particle",
-          "physics-ammo",
+          "physics-box3d",
+          "physics-box3d-extras",
           "primitive",
           "profiler",
           "skeletal-animation",
