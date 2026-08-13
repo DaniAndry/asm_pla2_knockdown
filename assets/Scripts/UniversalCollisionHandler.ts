@@ -3,7 +3,6 @@ import {
     Component,
     RigidBody,
     Collider,
-    BoxCollider,
     ICollisionEvent,
     Vec3,
     Quat,
@@ -27,7 +26,6 @@ import { SoundManager } from './SoundManager';
 const { ccclass, property } = _decorator;
 
 const _velA = new Vec3();
-const _rel = new Vec3();
 const _impulse = new Vec3();
 const _tmpPos = new Vec3();
 const _tmpScale = new Vec3();
@@ -35,11 +33,6 @@ const _tmpQuat = new Quat();
 const _renderCheckVel = new Vec3();
 
 interface WakeRequest { x: number; y: number; z: number; r2: number; }
-
-interface PreparedPiecePhysics {
-    rigidBody: RigidBody;
-    collider: BoxCollider;
-}
 
 @ccclass('UniversalCollisionHandler')
 export class UniversalCollisionHandler extends Component {
@@ -110,10 +103,10 @@ export class UniversalCollisionHandler extends Component {
     @property({ type: CCFloat, tooltip: 'Случайный угловой импульс кусков' })
     shatterTorque: number = 4;
 
-    @property({ type: CCFloat, tooltip: 'Масса каждого куска' })
+    @property({ type: CCFloat, tooltip: 'Legacy compatibility field. Visual shards do not use physics mass.' })
     shatterPieceMass: number = 0.35;
 
-    @property({ type: CCFloat, tooltip: 'Сколько секунд куски живут с физикой до fade' })
+    @property({ type: CCFloat, tooltip: 'Legacy compatibility field. Visual shard flight is limited to 0.4-0.5 seconds.' })
     shatterLifeDuration: number = 1.1;
 
     @property({ type: CCFloat, tooltip: 'Длительность fade кусков после жизни (сек)' })
@@ -158,6 +151,15 @@ export class UniversalCollisionHandler extends Component {
 
     private static activeFxCount: number = 0;
     private static readonly MAX_ACTIVE_FX: number = 6;
+    // Debris is visual-only, but capping concurrent transforms also prevents
+    // a cascade on the largest level from becoming a render/update spike.
+    private static activeVisualShardCount: number = 0;
+    private static readonly MAX_ACTIVE_VISUAL_SHARDS: number = 24;
+    private static activeOverflowShardFadeCount: number = 0;
+    private static readonly MAX_ACTIVE_OVERFLOW_SHARD_FADES: number = 12;
+    private static readonly VISUAL_SHARD_MIN_FLIGHT: number = 0.4;
+    private static readonly VISUAL_SHARD_MAX_FLIGHT: number = 0.5;
+    private static readonly VISUAL_SHARD_OVERFLOW_FADE: number = 0.12;
     private static readonly FADE_STEPS: number = 4;
 
 
@@ -623,7 +625,6 @@ export class UniversalCollisionHandler extends Component {
     private shatterMeshPiecesAndFade() {
         const pieces = this.collectShatterPieces();
         if (pieces.length === 0) {
-
             if (isValid(this.rb)) {
                 UniversalCollisionHandler.liveBodies.delete(this.rb);
                 this.rb.setAngularVelocity(Vec3.ZERO);
@@ -637,7 +638,6 @@ export class UniversalCollisionHandler extends Component {
             return;
         }
 
-
         if (isValid(this.rb)) {
             this.rb.getLinearVelocity(_velA);
             UniversalCollisionHandler.liveBodies.delete(this.rb);
@@ -648,448 +648,206 @@ export class UniversalCollisionHandler extends Component {
             _velA.set(0, 0, 0);
         }
 
-
         for (const c of this.node.getComponents(Collider)) {
             if (isValid(c)) c.enabled = false;
         }
 
-        this.node.getWorldPosition(_tmpPos);
-        const originX = _tmpPos.x;
-        const originY = _tmpPos.y;
-        const originZ = _tmpPos.z;
-        const parentVx = _velA.x;
-        const parentVy = _velA.y;
-        const parentVz = _velA.z;
-
         const scene = this.node.scene;
-        const life = Math.max(0.2, this.shatterLifeDuration);
-        const fadeDur = Math.max(0.05, this.shatterFadeDuration);
         const scheduler = director.getScheduler();
-
-
+        const origin = this.node.worldPosition.clone();
+        const parentVelocity = _velA.clone();
+        const fadeDuration = Math.max(0.05, this.shatterFadeDuration);
 
         const dormant: Node[] = [];
         const living: Node[] = [];
         for (let i = 0; i < pieces.length; i++) {
-            const p = pieces[i];
-            if (!isValid(p)) continue;
-            if (p.active) living.push(p);
-            else dormant.push(p);
+            const piece = pieces[i];
+            if (!isValid(piece)) continue;
+            if (piece.active) living.push(piece);
+            else dormant.push(piece);
         }
+
         const toShatter = dormant.length > 0 ? dormant : living;
         const hideLivingAfter = dormant.length > 0;
-
-
-        const spawned: Node[] = [];
+        let longestEffect = UniversalCollisionHandler.VISUAL_SHARD_OVERFLOW_FADE;
 
         for (let i = 0; i < toShatter.length; i++) {
             const piece = toShatter[i];
             if (!isValid(piece)) continue;
-
-            // Раньше здесь кусок переносился в scene (setParent) с ручным
-            // восстановлением мирового трансформа (позиция/поворот/масштаб,
-            // плюс NaN-гварды и снэп-бэк при "разрыве" дистанции > 5м) — это
-            // сама по себе тяжёлая операция (включая updateWorldTransform()),
-            // и при массовом одновременном разрушении (когда весь стек разом
-            // падает на пол и десятки объектов шаттерятся в один кадр) именно
-            // она, судя по всему, была причиной "зависания"/визуального
-            // пропадания на кадр и кусков с координатами непонятно откуда.
-            //
-            // Кусок и так уже уничтожается раньше (piece.destroy() в конце
-            // schedulePieceLifetime, через life + fadeDur), чем сам root
-            // (root.destroy() ниже отложен на life + fadeDur + 0.15 — заведомо
-            // позже) — значит, оставлять кусок ребёнком root безопасно для
-            // жизненного цикла. А раз parent не меняется, мировые координаты
-            // куска вообще не сдвигаются никакой ручной математикой — он остаётся
-            // ровно там, где визуально был.
-            let pieceRb: RigidBody | null = null;
-            if (!piece.activeInHierarchy) {
-                // Box3D 3.8.8 crashes if a RigidBody is added after an enabled
-                // collider has already created its shared body. Prepare dormant
-                // fragments while they are inactive, then enable the collider
-                // only after the RigidBody has completed its activation.
-                const prepared = this.prepareInactivePiecePhysics(piece);
-                if (prepared) {
-                    piece.active = true;
-                    pieceRb = this.configurePieceRigidBody(prepared.rigidBody);
-                    if (pieceRb) prepared.collider.enabled = true;
-                }
-            } else {
-                // An active fragment may safely participate only if it already
-                // owns a body. Adding one here is the Box3D initialization bug
-                // described above, so it falls back to the visual fade below.
-                pieceRb = this.ensureActivePieceRigidBody(piece);
-            }
-            if (!pieceRb) {
-                spawned.push(piece);
-                continue;
-            }
-
-            piece.getWorldPosition(_tmpPos);
-            _impulse.set(
-                _tmpPos.x - originX,
-                _tmpPos.y - originY,
-                _tmpPos.z - originZ
+            longestEffect = Math.max(
+                longestEffect,
+                this.playVisualShard(piece, origin, parentVelocity, fadeDuration)
             );
-            if (_impulse.lengthSqr() < 1e-4) {
-                _impulse.set(Math.random() - 0.5, 0.6, Math.random() - 0.5);
-            }
-            _impulse.normalize();
-            _impulse.y = Math.max(_impulse.y, 0.35);
-            _impulse.normalize();
-            const strength = this.shatterImpulse * (0.75 + Math.random() * 0.5);
-            _impulse.multiplyScalar(strength);
-
-            _rel.set(
-                (Math.random() - 0.5) * this.shatterTorque,
-                (Math.random() - 0.5) * this.shatterTorque,
-                (Math.random() - 0.5) * this.shatterTorque
-            );
-
-
-
-            const vx = parentVx;
-            const vy = parentVy;
-            const vz = parentVz;
-            const ix = _impulse.x;
-            const iy = _impulse.y;
-            const iz = _impulse.z;
-            const tx = _rel.x;
-            const ty = _rel.y;
-            const tz = _rel.z;
-            const rbRef = pieceRb;
-            const pieceRef = piece;
-            const kickTarget = isValid(scene) ? scene : this.node;
-
-            const kick = () => {
-                if (!isValid(pieceRef) || !isValid(rbRef) || !rbRef.enabled) return;
-                try {
-                    if (!(rbRef as any)._isInitialized) {
-                        scheduler.schedule(kick, kickTarget, 0, 0, 0, false);
-                        return;
-                    }
-                    rbRef.setLinearVelocity(new Vec3(vx, vy, vz));
-                    rbRef.wakeUp();
-                    rbRef.applyImpulse(new Vec3(ix, iy, iz));
-                    rbRef.setAngularVelocity(new Vec3(tx, ty, tz));
-
-
-                    rbRef.getLinearVelocity(_velA);
-                    const maxSpd = 10;
-                    if (_velA.lengthSqr() > maxSpd * maxSpd) {
-                        _velA.normalize().multiplyScalar(maxSpd);
-                        rbRef.setLinearVelocity(_velA);
-                    }
-                } catch {
-                    scheduler.schedule(kick, kickTarget, 0, 0, 0, false);
-                }
-            };
-            scheduler.schedule(kick, kickTarget, 0, 0, 0, false);
-
-
-            let clampLeft = 2;
-            const clampVel = () => {
-                if (!isValid(pieceRef) || !isValid(rbRef) || !rbRef.enabled) return;
-                try {
-                    rbRef.getLinearVelocity(_velA);
-                    const maxSpd = 12;
-                    if (_velA.lengthSqr() > maxSpd * maxSpd) {
-                        _velA.normalize().multiplyScalar(maxSpd);
-                        rbRef.setLinearVelocity(_velA);
-                    }
-                } catch {  }
-                clampLeft--;
-                if (clampLeft > 0) {
-                    scheduler.schedule(clampVel, kickTarget, 0, 0, 0, false);
-                }
-            };
-            scheduler.schedule(clampVel, kickTarget, 0, 0, 0, false);
-
-            spawned.push(piece);
         }
 
-
-        if (hideLivingAfter && spawned.length > 0) {
+        if (hideLivingAfter && toShatter.length > 0) {
             for (let i = 0; i < living.length; i++) {
                 if (isValid(living[i])) living[i].active = false;
             }
-        }
-
-
-
-        for (let i = 0; i < spawned.length; i++) {
-            this.schedulePieceLifetime(spawned[i], life, fadeDur);
         }
 
         const root = this.node;
         if (isValid(scene)) {
             scheduler.schedule(() => {
                 if (isValid(root)) root.destroy();
-            }, scene, 0, 0, life + fadeDur + 0.15, false);
+            }, scene, 0, 0, longestEffect + 0.15, false);
         } else {
             this.scheduleOnce(() => {
                 if (isValid(root)) root.destroy();
-            }, life + fadeDur + 0.15);
+            }, longestEffect + 0.15);
         }
     }
-
 
     private collectShatterPieces(): Node[] {
         const pieces: Node[] = [];
         const renderers = this.node.getComponentsInChildren(MeshRenderer);
         for (let i = 0; i < renderers.length; i++) {
-            const r = renderers[i];
-            if (!isValid(r) || !isValid(r.node)) continue;
-            if (r.node === this.node) continue;
-            if (pieces.indexOf(r.node) < 0) pieces.push(r.node);
+            const renderer = renderers[i];
+            if (!isValid(renderer) || !isValid(renderer.node)) continue;
+            if (renderer.node === this.node) continue;
+            if (pieces.indexOf(renderer.node) < 0) pieces.push(renderer.node);
         }
         return pieces;
     }
 
+    private playVisualShard(piece: Node, origin: Vec3, parentVelocity: Vec3, fadeDuration: number): number {
+        this.disablePiecePhysics(piece);
+        if (!piece.active) piece.active = true;
 
-    /**
-     * Sets up an inactive fragment without letting a collider create a static
-     * Box3D shared body before its RigidBody is initialized.
-     */
-    private prepareInactivePiecePhysics(piece: Node): PreparedPiecePhysics | null {
-        if (!isValid(piece)) return null;
-        if (piece.activeInHierarchy) return null;
-
-        const allCols = piece.getComponentsInChildren(Collider);
-        for (let i = 0; i < allCols.length; i++) {
-            if (isValid(allCols[i])) allCols[i].enabled = false;
+        if (UniversalCollisionHandler.activeVisualShardCount >= UniversalCollisionHandler.MAX_ACTIVE_VISUAL_SHARDS) {
+            this.fadeVisualShard(piece, UniversalCollisionHandler.VISUAL_SHARD_OVERFLOW_FADE);
+            return UniversalCollisionHandler.VISUAL_SHARD_OVERFLOW_FADE;
         }
 
-        piece.getWorldScale(_tmpScale);
-        const scaleMag = (
-            Math.abs(_tmpScale.x) + Math.abs(_tmpScale.y) + Math.abs(_tmpScale.z)
-        ) / 3;
+        UniversalCollisionHandler.activeVisualShardCount++;
 
-        let host = piece;
-        let box: BoxCollider;
-        const boxes = piece.getComponentsInChildren(BoxCollider);
+        const flightDuration = UniversalCollisionHandler.VISUAL_SHARD_MIN_FLIGHT
+            + Math.random() * (
+                UniversalCollisionHandler.VISUAL_SHARD_MAX_FLIGHT
+                - UniversalCollisionHandler.VISUAL_SHARD_MIN_FLIGHT
+            );
+        const startPosition = piece.worldPosition.clone();
+        const endPosition = startPosition.clone();
+        const direction = new Vec3(startPosition.x - origin.x, 0, startPosition.z - origin.z);
+        if (direction.lengthSqr() < 1e-4) {
+            direction.set(Math.random() - 0.5, 0, Math.random() - 0.5);
+        }
+        direction.normalize();
 
-        if (scaleMag < 0.05 && boxes.length > 0) {
+        const strength = Math.max(0.1, this.shatterImpulse * (0.75 + Math.random() * 0.5));
+        const distance = Math.min(0.95, 0.18 + strength * 0.23);
+        endPosition.x += direction.x * distance + Math.max(-0.12, Math.min(0.12, parentVelocity.x * 0.05));
+        endPosition.z += direction.z * distance + Math.max(-0.12, Math.min(0.12, parentVelocity.z * 0.05));
+        endPosition.y += Math.max(-0.06, Math.min(0.06, parentVelocity.y * 0.02));
+        const arcHeight = Math.min(0.42, 0.12 + strength * 0.12);
 
-            let best = boxes[0];
-            let bestVol = Number.POSITIVE_INFINITY;
-            for (let i = 0; i < boxes.length; i++) {
-                const b = boxes[i];
-                if (!isValid(b)) continue;
-                const vol = Math.abs(b.size.x * b.size.y * b.size.z);
-                if (vol > 1e-6 && vol < bestVol) {
-                    bestVol = vol;
-                    best = b;
-                }
-            }
-            host = best.node;
-            box = best;
-        } else {
+        const startRotation = piece.getWorldRotation(new Quat());
+        const spin = Quat.fromEuler(
+            new Quat(),
+            (Math.random() * 2 - 1) * this.shatterTorque * 30,
+            (Math.random() * 2 - 1) * this.shatterTorque * 30,
+            (Math.random() * 2 - 1) * this.shatterTorque * 30,
+        );
+        const endRotation = Quat.multiply(new Quat(), spin, startRotation);
+        const currentRotation = new Quat();
+        const startScale = piece.getScale(new Vec3());
+        const motion = { flight: 0, fade: 0 };
+        let released = false;
 
-            box = piece.getComponent(BoxCollider);
-            if (!box) {
-                box = piece.addComponent(BoxCollider);
-            }
+        const release = () => {
+            if (released) return;
+            released = true;
+            UniversalCollisionHandler.activeVisualShardCount = Math.max(
+                0,
+                UniversalCollisionHandler.activeVisualShardCount - 1
+            );
+            if (isValid(piece)) piece.destroy();
+        };
 
-            const size = new Vec3(0.3, 0.3, 0.3);
-            const center = new Vec3();
-            const mr = piece.getComponent(MeshRenderer) || piece.getComponentInChildren(MeshRenderer);
-            if (isValid(mr) && mr.mesh) {
-                const min = mr.mesh.minPosition;
-                const max = mr.mesh.maxPosition;
-                if (min && max) {
-                    size.set(
-                        Math.max(0.06, Math.abs(max.x - min.x) * 0.85),
-                        Math.max(0.06, Math.abs(max.y - min.y) * 0.85),
-                        Math.max(0.06, Math.abs(max.z - min.z) * 0.85),
+        tween(motion)
+            .to(flightDuration, { flight: 1 }, {
+                easing: 'quadOut',
+                onUpdate: () => {
+                    if (!isValid(piece)) return;
+                    const t = motion.flight;
+                    const arc = 4 * t * (1 - t);
+                    piece.setWorldPosition(
+                        startPosition.x + (endPosition.x - startPosition.x) * t,
+                        startPosition.y + (endPosition.y - startPosition.y) * t + arcHeight * arc,
+                        startPosition.z + (endPosition.z - startPosition.z) * t,
                     );
-                    center.set(
-                        (max.x + min.x) * 0.5,
-                        (max.y + min.y) * 0.5,
-                        (max.z + min.z) * 0.5,
-                    );
-                }
-            }
-            box.size = size;
-            box.center = center;
-            host = piece;
-        }
-
-        // Keep every shape disabled until the body is active. This is required
-        // by Box3D's component lifecycle, not just a collision preference.
-        box.enabled = false;
-
-        let rb = host.getComponent(RigidBody);
-        if (!rb) {
-            rb = host.addComponent(RigidBody);
-        }
-        if (!isValid(rb)) return null;
-
-        return { rigidBody: rb, collider: box };
-    }
-
-    /** Configures a body only after its backend wrapper has been initialized. */
-    private configurePieceRigidBody(rb: RigidBody): RigidBody | null {
-        if (!isValid(rb)) return null;
-
-        rb.enabled = true;
-        rb.type = RigidBody.Type.DYNAMIC;
-        rb.useGravity = true;
-        rb.allowSleep = true;
-
-        // Осколок физически взаимодействует ТОЛЬКО с Floor — не с другими
-        // осколками, не с ещё целыми блоками, не со снарядом. Group/Mask —
-        // на RigidBody (см. константы GROUP_* выше и Collision Matrix в
-        // Project Settings, где должны быть включены галочки
-        // FLOOR_GROUP×SHATTER_GROUP и выключены SHATTER_GROUP×SHATTER_GROUP,
-        // SHATTER_GROUP×DEFAULT).
-        rb.setGroup(UniversalCollisionHandler.GROUP_SHATTER);
-        rb.setMask(UniversalCollisionHandler.GROUP_FLOOR);
-        rb.mass = Math.max(0.05, this.shatterPieceMass);
-        rb.linearDamping = 0.35;
-        rb.angularDamping = 0.45;
-
-        // ВАЖНО: раньше осколки (shatter pieces) не попадали в liveBodies и
-        // поэтому НЕ были защищены общим клэмпом скорости/NaN (clampAllVelocities)
-        // и не участвовали в queueWake. При плотном уровне и нескольких
-        // одновременных разрушениях именно у осколков чаще всего "взрывалась"
-        // скорость — отсюда куски, улетающие в случайные координаты.
-        UniversalCollisionHandler.liveBodies.add(rb);
-        return rb;
-    }
-
-    /**
-     * Active fragments cannot receive a new body with Box3D safely. Existing
-     * bodies are fine; their collider is enabled only after they are configured.
-     */
-    private ensureActivePieceRigidBody(piece: Node): RigidBody | null {
-        if (!isValid(piece)) return null;
-
-        const allCols = piece.getComponentsInChildren(Collider);
-        for (let i = 0; i < allCols.length; i++) {
-            if (isValid(allCols[i])) allCols[i].enabled = false;
-        }
-
-        piece.getWorldScale(_tmpScale);
-        const scaleMag = (
-            Math.abs(_tmpScale.x) + Math.abs(_tmpScale.y) + Math.abs(_tmpScale.z)
-        ) / 3;
-
-        let host = piece;
-        let box: BoxCollider;
-        const boxes = piece.getComponentsInChildren(BoxCollider);
-
-        if (scaleMag < 0.05 && boxes.length > 0) {
-            let best = boxes[0];
-            let bestVol = Number.POSITIVE_INFINITY;
-            for (let i = 0; i < boxes.length; i++) {
-                const candidate = boxes[i];
-                if (!isValid(candidate)) continue;
-                const vol = Math.abs(candidate.size.x * candidate.size.y * candidate.size.z);
-                if (vol > 1e-6 && vol < bestVol) {
-                    bestVol = vol;
-                    best = candidate;
-                }
-            }
-            host = best.node;
-            box = best;
-        } else {
-            box = piece.getComponent(BoxCollider);
-            if (!box) {
-                // The existing body was initialized before this shape, so this
-                // order is safe even while the node is active.
-                const existingBody = piece.getComponent(RigidBody);
-                if (!existingBody) return null;
-                box = piece.addComponent(BoxCollider);
-            }
-
-            const size = new Vec3(0.3, 0.3, 0.3);
-            const center = new Vec3();
-            const mr = piece.getComponent(MeshRenderer) || piece.getComponentInChildren(MeshRenderer);
-            if (isValid(mr) && mr.mesh) {
-                const min = mr.mesh.minPosition;
-                const max = mr.mesh.maxPosition;
-                if (min && max) {
-                    size.set(
-                        Math.max(0.06, Math.abs(max.x - min.x) * 0.85),
-                        Math.max(0.06, Math.abs(max.y - min.y) * 0.85),
-                        Math.max(0.06, Math.abs(max.z - min.z) * 0.85),
-                    );
-                    center.set(
-                        (max.x + min.x) * 0.5,
-                        (max.y + min.y) * 0.5,
-                        (max.z + min.z) * 0.5,
-                    );
-                }
-            }
-            box.size = size;
-            box.center = center;
-            host = piece;
-        }
-
-        const rb = host.getComponent(RigidBody);
-        const configured = rb ? this.configurePieceRigidBody(rb) : null;
-        if (configured) box.enabled = true;
-        return configured;
-    }
-
-    private schedulePieceLifetime(piece: Node, life: number, fadeDur: number) {
-        if (!isValid(piece)) return;
-
-
-
-        piece.getScale(_tmpScale);
-        const sx = _tmpScale.x;
-        const sy = _tmpScale.y;
-        const sz = _tmpScale.z;
-        const fade = { t: 0 };
-        const lockedPos = new Vec3();
-
-        tween(fade)
-            .delay(life)
-            .call(() => {
-                if (!isValid(piece)) return;
-                const pieceRb = piece.getComponentInChildren(RigidBody);
-                if (isValid(pieceRb)) {
-                    try {
-                        pieceRb.setLinearVelocity(Vec3.ZERO);
-                        pieceRb.setAngularVelocity(Vec3.ZERO);
-                    } catch {  }
-                    pieceRb.enabled = false;
-                    UniversalCollisionHandler.liveBodies.delete(pieceRb);
-                    UniversalCollisionHandler.lastGoodPos.delete(pieceRb);
-                }
-                const colliders = piece.getComponentsInChildren(Collider);
-                for (let i = 0; i < colliders.length; i++) {
-                    if (isValid(colliders[i])) colliders[i].enabled = false;
-                }
-
-                // Пивот у осколков — от исходного разбитого меша, а не от
-                // центра конкретного куска, так что setScale() ниже "тянет"
-                // кусок к этому пивоту при уменьшении. Раньше это выглядело
-                // как будто кусок проваливается в пол ровно в момент
-                // выключения коллайдера — на самом деле он просто съезжал к
-                // своему пивоту во время сжатия. Фиксируем мировую позицию
-                // здесь и удерживаем её каждый кадр, пока идёт fade.
-                piece.getWorldPosition(lockedPos);
+                    Quat.slerp(currentRotation, startRotation, endRotation, t);
+                    piece.setWorldRotation(currentRotation);
+                },
             })
-            .to(fadeDur, { t: 1 }, {
+            .to(fadeDuration, { fade: 1 }, {
+                easing: 'quadIn',
+                onUpdate: () => {
+                    if (!isValid(piece)) return;
+                    const k = Math.max(0, 1 - motion.fade);
+                    piece.setScale(startScale.x * k, startScale.y * k, startScale.z * k);
+                },
+            })
+            .call(release)
+            .start();
+
+        return flightDuration + fadeDuration;
+    }
+
+    private fadeVisualShard(piece: Node, duration: number) {
+        this.disablePiecePhysics(piece);
+        if (!piece.active) piece.active = true;
+
+        if (UniversalCollisionHandler.activeOverflowShardFadeCount >= UniversalCollisionHandler.MAX_ACTIVE_OVERFLOW_SHARD_FADES) {
+            piece.active = false;
+            return;
+        }
+        UniversalCollisionHandler.activeOverflowShardFadeCount++;
+
+        const startScale = piece.getScale(new Vec3());
+        const fade = { t: 0 };
+        tween(fade)
+            .to(duration, { t: 1 }, {
                 easing: 'quadIn',
                 onUpdate: () => {
                     if (!isValid(piece)) return;
                     const k = Math.max(0, 1 - fade.t);
-                    piece.setScale(sx * k, sy * k, sz * k);
-                    piece.setWorldPosition(lockedPos);
+                    piece.setScale(startScale.x * k, startScale.y * k, startScale.z * k);
                 },
             })
             .call(() => {
+                UniversalCollisionHandler.activeOverflowShardFadeCount = Math.max(
+                    0,
+                    UniversalCollisionHandler.activeOverflowShardFadeCount - 1
+                );
                 if (isValid(piece)) piece.destroy();
             })
             .start();
     }
 
+    private disablePiecePhysics(piece: Node) {
+        const colliders = piece.getComponentsInChildren(Collider);
+        for (let i = 0; i < colliders.length; i++) {
+            if (isValid(colliders[i])) colliders[i].enabled = false;
+        }
 
+        // Existing authored fragments are normally mesh-only. Disable any
+        // legacy body as well, but never create or configure a new one.
+        const bodies = piece.getComponentsInChildren(RigidBody);
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i];
+            if (!isValid(body)) continue;
+            UniversalCollisionHandler.liveBodies.delete(body);
+            UniversalCollisionHandler.lastGoodPos.delete(body);
+            try {
+                body.setLinearVelocity(Vec3.ZERO);
+                body.setAngularVelocity(Vec3.ZERO);
+            } catch {
 
+            }
+            body.enabled = false;
+        }
+    }
 
     private getRandomAnimDurationFactor(): number {
         const min = Math.min(this.animDurationMinFactor, this.animDurationMaxFactor);
@@ -1292,6 +1050,8 @@ export class UniversalCollisionHandler extends Component {
         UniversalCollisionHandler.wakeQueue.length = 0;
         UniversalCollisionHandler.wakeScheduled = false;
         UniversalCollisionHandler.activeFxCount = 0;
+        UniversalCollisionHandler.activeVisualShardCount = 0;
+        UniversalCollisionHandler.activeOverflowShardFadeCount = 0;
         UniversalCollisionHandler.activeScorePopups = 0;
         UniversalCollisionHandler.scorePool.length = 0;
     }
