@@ -8,6 +8,10 @@ import {
     Label,
     director,
     isValid,
+    tween,
+    Tween,
+    UIOpacity,
+    Vec3,
 } from 'cc';
 import { LevelManager } from './LevelManager';
 import { SoundManager } from './SoundManager';
@@ -69,6 +73,11 @@ export class LevelSwitcher extends Component {
     private isLoseShown: boolean = false;
     private pendingNextLevel: boolean = false;
     private tutorial: Tutorial | null = null;
+    private finishBackdrop: Node | null = null;
+    private finishLabelNode: Node | null = null;
+    private finishButtonNode: Node | null = null;
+    private finishLabelBaseScale: Vec3 = new Vec3(1, 1, 1);
+    private finishButtonBaseScale: Vec3 = new Vec3(1, 1, 1);
 
 
     private static retryCount: number = 0;
@@ -77,8 +86,6 @@ export class LevelSwitcher extends Component {
 
     private readonly PROGRESS_INCREMENT_PER_LEVEL: number = 0.3;
     private readonly MAX_PROGRESS_FILL: number = 0.9;
-
-    private pendingNextLevel: boolean = false;
 
     public getCurrentLevelIndex(): number {
         return this.currentLevelIndex;
@@ -92,6 +99,7 @@ export class LevelSwitcher extends Component {
     onLoad() {
         if (this.finishScreenNode) this.finishScreenNode.active = false;
         if (this.loseScreenNode) this.loseScreenNode.active = false;
+        this.resolveFinishScreenNodes();
 
         this.tutorial = this.ensureTutorial();
 
@@ -287,7 +295,10 @@ export class LevelSwitcher extends Component {
         if (this.tutorialNode) this.tutorialNode.active = false;
         if (this.loseScreenNode) this.loseScreenNode.active = false;
 
-        if (this.finishScreenNode) this.finishScreenNode.active = true;
+        if (this.finishScreenNode) {
+            this.finishScreenNode.active = true;
+            this.playFinishScreenIntro();
+        }
 
         this.playSound(this.victorySoundName);
 
@@ -318,6 +329,56 @@ export class LevelSwitcher extends Component {
             const anim = this.titleAnimation.getComponent(Animation);
             if (anim) { anim.stop(); anim.play(); }
         }
+    }
+
+    private resolveFinishScreenNodes() {
+        if (!isValid(this.finishScreenNode)) return;
+
+        this.finishBackdrop = this.finishScreenNode.getChildByName('Back');
+        this.finishLabelNode = this.finishScreenNode.getChildByName('LilitaOne-Regular');
+        this.finishButtonNode = this.finishScreenNode.getChildByName('Button');
+        if (isValid(this.finishLabelNode)) {
+            this.finishLabelNode.getScale(this.finishLabelBaseScale);
+        }
+        if (isValid(this.finishButtonNode)) {
+            this.finishButtonNode.getScale(this.finishButtonBaseScale);
+        }
+    }
+
+    private playFinishScreenIntro() {
+        if (!isValid(this.finishScreenNode)) return;
+        if (!isValid(this.finishBackdrop)
+            || !isValid(this.finishLabelNode)
+            || !isValid(this.finishButtonNode)) {
+            this.resolveFinishScreenNodes();
+        }
+
+        const backdrop = this.finishBackdrop;
+        if (isValid(backdrop)) {
+            const opacity = backdrop.getComponent(UIOpacity) || backdrop.addComponent(UIOpacity);
+            Tween.stopAllByTarget(opacity);
+            opacity.opacity = 0;
+            tween(opacity)
+                .to(0.25, { opacity: 255 }, { easing: 'quadOut' })
+                .start();
+        }
+
+        this.playFinishScaleBounce(this.finishLabelNode, this.finishLabelBaseScale, 0);
+        this.playFinishScaleBounce(this.finishButtonNode, this.finishButtonBaseScale, 0.16);
+    }
+
+    private playFinishScaleBounce(node: Node | null, baseScale: Vec3, delay: number) {
+        if (!isValid(node)) return;
+
+        Tween.stopAllByTarget(node);
+        node.setScale(0, 0, baseScale.z);
+
+        const overshoot = new Vec3(baseScale.x * 1.1, baseScale.y * 1.1, baseScale.z);
+        tween(node)
+            .delay(delay)
+            .to(0.28, { scale: overshoot }, { easing: 'backOut' })
+            .to(0.1, { scale: baseScale }, { easing: 'sineInOut' })
+            .start();
     }
 
     private playSound(name: string) {

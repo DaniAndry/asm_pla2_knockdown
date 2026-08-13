@@ -7,8 +7,8 @@ const { ccclass, property } = _decorator;
 export class NodeHTML extends Component {
 
     onLoad() {
-        super_html_playable.set_google_play_url('https://play.google.com/store/apps/details?id=com.echidna.association.tile');
-        super_html_playable.set_app_store_url('https://apps.apple.com/us/app/word-association-tiles/id6757710438');
+        super_html_playable.set_google_play_url('https://play.google.com/store/apps/details?id=com.tripledot.angrysmash');
+        super_html_playable.set_app_store_url('');
     }
 
 

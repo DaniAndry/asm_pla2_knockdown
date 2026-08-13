@@ -274,7 +274,6 @@ export class UniversalCollisionHandler extends Component {
             this.node.getWorldPosition(_tmpPos);
             UniversalCollisionHandler.queueWake(_tmpPos, this.wakeRadius);
             SoundManager.notifyHit();
-            this.playHitSound();
         } else {
             // Wake only immediate sleeping neighbours. They remain Dynamic,
             // so their contact constraints can propagate the real collapse.
@@ -306,7 +305,6 @@ export class UniversalCollisionHandler extends Component {
         this.lastHitTime = now;
 
         SoundManager.notifyHit();
-        this.playHitSound();
 
         this.node.getWorldPosition(_tmpPos);
         UniversalCollisionHandler.queueWake(_tmpPos, this.wakeRadius);
