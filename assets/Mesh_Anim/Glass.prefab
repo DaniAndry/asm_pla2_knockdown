@@ -25,17 +25,17 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 89
+        "__id__": 96
       },
       {
-        "__id__": 91
+        "__id__": 98
       },
       {
-        "__id__": 93
+        "__id__": 100
       }
     ],
     "_prefab": {
-      "__id__": 95
+      "__id__": 102
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -161,6 +161,27 @@
       },
       {
         "__id__": 87
+      },
+      {
+        "__id__": 89
+      },
+      {
+        "__id__": 90
+      },
+      {
+        "__id__": 91
+      },
+      {
+        "__id__": 92
+      },
+      {
+        "__id__": 93
+      },
+      {
+        "__id__": 94
+      },
+      {
+        "__id__": 95
       }
     ],
     "removedComponents": []
@@ -326,7 +347,7 @@
     "_lightmapSize": 64,
     "_useLightProbe": false,
     "_bakeToLightProbe": true,
-    "_reflectionProbeType": 0,
+    "_reflectionProbeType": 1,
     "_bakeToReflectionProbe": true
   },
   {
@@ -503,7 +524,7 @@
     "_lightmapSize": 64,
     "_useLightProbe": false,
     "_bakeToLightProbe": true,
-    "_reflectionProbeType": 0,
+    "_reflectionProbeType": 1,
     "_bakeToReflectionProbe": true
   },
   {
@@ -680,7 +701,7 @@
     "_lightmapSize": 64,
     "_useLightProbe": false,
     "_bakeToLightProbe": true,
-    "_reflectionProbeType": 0,
+    "_reflectionProbeType": 1,
     "_bakeToReflectionProbe": true
   },
   {
@@ -857,7 +878,7 @@
     "_lightmapSize": 64,
     "_useLightProbe": false,
     "_bakeToLightProbe": true,
-    "_reflectionProbeType": 0,
+    "_reflectionProbeType": 1,
     "_bakeToReflectionProbe": true
   },
   {
@@ -1034,7 +1055,7 @@
     "_lightmapSize": 64,
     "_useLightProbe": false,
     "_bakeToLightProbe": true,
-    "_reflectionProbeType": 0,
+    "_reflectionProbeType": 1,
     "_bakeToReflectionProbe": true
   },
   {
@@ -1215,7 +1236,7 @@
     "_lightmapSize": 64,
     "_useLightProbe": false,
     "_bakeToLightProbe": true,
-    "_reflectionProbeType": 0,
+    "_reflectionProbeType": 1,
     "_bakeToReflectionProbe": true
   },
   {
@@ -1392,7 +1413,7 @@
     "_lightmapSize": 64,
     "_useLightProbe": false,
     "_bakeToLightProbe": true,
-    "_reflectionProbeType": 0,
+    "_reflectionProbeType": 1,
     "_bakeToReflectionProbe": true
   },
   {
@@ -1643,6 +1664,83 @@
     ]
   },
   {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 74
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 77
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 79
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 81
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 83
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 85
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 88
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
     "__type__": "cc.BoxCollider",
     "_name": "",
     "_objFlags": 0,
@@ -1652,7 +1750,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 90
+      "__id__": 97
     },
     "_material": null,
     "_isTrigger": false,
@@ -1684,7 +1782,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 92
+      "__id__": 99
     },
     "_group": 1,
     "_type": 1,
@@ -1721,7 +1819,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 94
+      "__id__": 101
     },
     "useHealthSystem": true,
     "floorDestroyDelayMin": 0.3,
