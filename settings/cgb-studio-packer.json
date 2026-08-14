@@ -25,6 +25,7 @@
     "adcolony": false
   },
   "buildDefaults": {
+    "baseTaskId": "1786613227355",
     "name": "ASM - pla2",
     "buildPath": "project://build",
     "outputName": "web-mobile",

@@ -5,7 +5,23 @@
       "type": "color"
     },
     "logo": {
-      "type": "none"
+      "type": "custom",
+      "image": "project://settings/Logo.png"
+    },
+    "displayRatio": 1
+  },
+  "textureCompressConfig": {
+    "userPreset": {
+      "dct+Q65tNH34vxDaDObuJ0": {
+        "name": "WEBP-80",
+        "options": {
+          "web": {
+            "webp": {
+              "quality": 80
+            }
+          }
+        }
+      }
     }
   }
 }

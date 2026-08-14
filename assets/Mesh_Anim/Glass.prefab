@@ -1666,51 +1666,7 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 74
-    },
-    "propertyPath": [
-      "bakeSettings",
-      "_reflectionProbeType"
-    ],
-    "value": 1
-  },
-  {
-    "__type__": "CCPropertyOverrideInfo",
-    "targetInfo": {
-      "__id__": 77
-    },
-    "propertyPath": [
-      "bakeSettings",
-      "_reflectionProbeType"
-    ],
-    "value": 1
-  },
-  {
-    "__type__": "CCPropertyOverrideInfo",
-    "targetInfo": {
-      "__id__": 79
-    },
-    "propertyPath": [
-      "bakeSettings",
-      "_reflectionProbeType"
-    ],
-    "value": 1
-  },
-  {
-    "__type__": "CCPropertyOverrideInfo",
-    "targetInfo": {
-      "__id__": 81
-    },
-    "propertyPath": [
-      "bakeSettings",
-      "_reflectionProbeType"
-    ],
-    "value": 1
-  },
-  {
-    "__type__": "CCPropertyOverrideInfo",
-    "targetInfo": {
-      "__id__": 83
+      "__id__": 88
     },
     "propertyPath": [
       "bakeSettings",
@@ -1732,7 +1688,51 @@
   {
     "__type__": "CCPropertyOverrideInfo",
     "targetInfo": {
-      "__id__": 88
+      "__id__": 83
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 81
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 79
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 77
+    },
+    "propertyPath": [
+      "bakeSettings",
+      "_reflectionProbeType"
+    ],
+    "value": 1
+  },
+  {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 74
     },
     "propertyPath": [
       "bakeSettings",

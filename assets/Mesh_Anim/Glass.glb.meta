@@ -222,7 +222,7 @@
     },
     "meshSimplify": {
       "enable": true,
-      "targetRatio": 0.2,
+      "targetRatio": 0.71,
       "autoErrorRate": true,
       "lockBoundary": true,
       "errorRate": 0.2
