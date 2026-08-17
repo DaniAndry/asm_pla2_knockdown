@@ -2,8 +2,6 @@ import {
     _decorator,
     Camera,
     Component,
-    input,
-    Input,
     isValid,
     tween,
     Tween,
@@ -59,8 +57,8 @@ export class Tutorial extends Component {
 
     private isBlocked = false;
     private isShowing = false;
+    private consumed = false;
     private loopToken = 0;
-    private lastTouchAtMs = 0;
 
     private readonly _world = new Vec3();
     private readonly _screen = new Vec3();
@@ -71,25 +69,25 @@ export class Tutorial extends Component {
         this.editorScale.set(this.node.scale);
         this.refreshBaseScale();
         this.baseEulerZ = this.node.eulerAngles.z;
-        input.on(Input.EventType.TOUCH_START, this.onAnyTouch, this);
         this.hideImmediate();
     }
 
+    start() {
+        const scene = this.node.scene ?? director.getScene();
+        if (scene) scene.on('projectile-fired', this.onFirstShot, this);
+    }
+
     onDestroy() {
-        input.off(Input.EventType.TOUCH_START, this.onAnyTouch, this);
+        const scene = this.node.scene ?? director.getScene();
+        if (scene) scene.off('projectile-fired', this.onFirstShot, this);
         this.stopAnim();
         this.unschedule(this.showHint);
     }
 
 
     public onLevelReady() {
-        if (this.isBlocked) return;
+        if (this.isBlocked || this.consumed) return;
         this.unschedule(this.showHint);
-
-        if (performance.now() - this.lastTouchAtMs < 500) {
-            this.armIdle();
-            return;
-        }
         this.showHint();
     }
 
@@ -102,21 +100,14 @@ export class Tutorial extends Component {
         }
     }
 
-    private onAnyTouch = () => {
-        if (this.isBlocked) return;
-        this.lastTouchAtMs = performance.now();
+    private onFirstShot = () => {
+        this.consumed = true;
+        this.unschedule(this.showHint);
         this.hideImmediate();
-        this.armIdle();
     };
 
-    private armIdle() {
-        this.unschedule(this.showHint);
-        if (this.isBlocked) return;
-        this.scheduleOnce(this.showHint, this.idleDelay);
-    }
-
     private showHint = () => {
-        if (this.isBlocked) return;
+        if (this.isBlocked || this.consumed) return;
         if (!this.placeOverTarget()) {
             this.scheduleOnce(this.showHint, 0.5);
             return;
@@ -146,7 +137,7 @@ export class Tutorial extends Component {
 
     private playLoop() {
         this.stopAnim();
-        if (!this.isShowing || this.isBlocked || !this.opacity) return;
+        if (!this.isShowing || this.isBlocked || this.consumed || !this.opacity) return;
 
         this.refreshBaseScale();
 
@@ -182,7 +173,7 @@ export class Tutorial extends Component {
                             .to(this.fadeOutDuration, { opacity: 0 })
                             .delay(this.loopPause)
                             .call(() => {
-                                if (token !== this.loopToken || !this.isShowing || this.isBlocked) return;
+                                if (token !== this.loopToken || !this.isShowing || this.isBlocked || this.consumed) return;
                                 this.placeOverTarget();
                                 this.playLoop();
                             })

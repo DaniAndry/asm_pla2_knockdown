@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.unload = exports.load = exports.methods = exports.findPreviewHtml = exports.assertBuilderSuccess = exports.outputFromBuildOptions = void 0;
+exports.unload = exports.load = exports.methods = exports.findPreviewHtml = exports.assertBuilderSuccess = exports.outputFromBuildOptions = exports.projectPackageName = void 0;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const crypto = __importStar(require("crypto"));
@@ -56,6 +56,16 @@ function creatorVersion() {
     var _a;
     return String(((_a = Editor.App) === null || _a === void 0 ? void 0 : _a.version) || Editor.version || 'unknown');
 }
+function projectPackageName(projectDirectory) {
+    try {
+        const packageJson = JSON.parse(fs.readFileSync(path.join(projectDirectory, 'package.json'), 'utf8'));
+        return typeof (packageJson === null || packageJson === void 0 ? void 0 : packageJson.name) === 'string' ? packageJson.name.trim() : '';
+    }
+    catch (_error) {
+        return '';
+    }
+}
+exports.projectPackageName = projectPackageName;
 function outputFromBuildOptions(options, variationFolder) {
     if (!(options === null || options === void 0 ? void 0 : options.buildPath))
         return '';
@@ -406,6 +416,14 @@ function initializeFromBaseTask(settings, tasks) {
     }
     return settings;
 }
+function initializeGameNameFromProject(settings) {
+    if (settings.buildDefaults.name.trim())
+        return settings;
+    const name = projectPackageName(projectPath());
+    if (name)
+        settings.buildDefaults.name = name;
+    return settings;
+}
 function queueSnapshot() {
     return JSON.parse(JSON.stringify(queue));
 }
@@ -601,6 +619,7 @@ exports.methods = {
             queryBuilderCommonOptions(),
         ]);
         settings = initializeFromBaseTask(settings, tasks);
+        settings = initializeGameNameFromProject(settings);
         if (!settings.buildDefaults.engineModulesConfigKey) {
             const base = (0, builder_tasks_1.selectBuilderTask)(tasks, settings.buildDefaults.baseTaskId);
             const baseKey = base ? (0, builder_tasks_1.settingsFromBuilderTask)(base).engineModulesConfigKey : '';

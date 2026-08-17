@@ -96,6 +96,10 @@ export class LevelSwitcher extends Component {
         return level && level.isValid ? level : null;
     }
 
+    public isShootingBlocked(): boolean {
+        return this.isFinished || this.isLoseShown;
+    }
+
     onLoad() {
         if (this.finishScreenNode) this.finishScreenNode.active = false;
         if (this.loseScreenNode) this.loseScreenNode.active = false;
@@ -170,6 +174,9 @@ export class LevelSwitcher extends Component {
         this.pendingNextLevel = false;
 
         const nextIndex = this.currentLevelIndex + 1;
+        if (nextIndex < this.levels.length) {
+            this.levels[nextIndex]?.getComponent(LevelManager)?.resetRotationYaw();
+        }
 
         this.scheduleOnce(() => {
             this.isSwitching = false;
@@ -234,15 +241,19 @@ export class LevelSwitcher extends Component {
         }
 
         if (this.tutorial) {
-            this.tutorial.setBlocked(false);
-
-            this.scheduleOnce(() => this.tutorial?.onLevelReady(), 0.35);
+            if (index === 0) {
+                this.tutorial.setBlocked(false);
+                this.scheduleOnce(() => this.tutorial?.onLevelReady(), 0.35);
+            } else {
+                this.tutorial.setBlocked(true);
+            }
         }
     }
 
     private showLoseScreen() {
         if (this.isFinished || this.isLoseShown) return;
         this.isLoseShown = true;
+        this.emitGameplayInputBlocked();
 
         this.tutorial?.setBlocked(true);
         this.playSound(this.loseSoundName);
@@ -290,6 +301,7 @@ export class LevelSwitcher extends Component {
     }
 
     private showFinishScreen() {
+        this.emitGameplayInputBlocked();
         this.levels.forEach(l => { if (l && l.isValid) l.active = false; });
         this.tutorial?.setBlocked(true);
         if (this.tutorialNode) this.tutorialNode.active = false;
@@ -379,6 +391,11 @@ export class LevelSwitcher extends Component {
             .to(0.28, { scale: overshoot }, { easing: 'backOut' })
             .to(0.1, { scale: baseScale }, { easing: 'sineInOut' })
             .start();
+    }
+
+    private emitGameplayInputBlocked() {
+        const scene = this.node.scene;
+        if (scene) scene.emit('gameplay-input-blocked');
     }
 
     private playSound(name: string) {

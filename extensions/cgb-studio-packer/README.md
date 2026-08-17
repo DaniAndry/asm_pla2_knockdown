@@ -3,7 +3,7 @@
 Cocos Creator `>=3.8.3 <4` extension for producing network-ready single-HTML
 web-mobile playable ads.
 
-## Version 1.8.0
+## Version 1.8.1
 
 The packer manages ordered build variations with independent scenes, Start
 Scene and Splash overrides. Shared settings include Base64/Base122 encoding,

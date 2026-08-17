@@ -977,7 +977,7 @@
     "hitSoundName": "hitWood",
     "destructionSoundName": "",
     "hitSoundCooldown": 0.12,
-    "wakeRadius": 5,
+    "wakeRadius": 2,
     "projectileTag": "Projectile",
     "projectileGroup": 0,
     "animDurationMinFactor": 0.15,

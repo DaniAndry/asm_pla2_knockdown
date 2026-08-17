@@ -72,6 +72,15 @@ function creatorVersion(): string {
   return String(Editor.App?.version || Editor.version || 'unknown');
 }
 
+export function projectPackageName(projectDirectory: string): string {
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(path.join(projectDirectory, 'package.json'), 'utf8'));
+    return typeof packageJson?.name === 'string' ? packageJson.name.trim() : '';
+  } catch (_error) {
+    return '';
+  }
+}
+
 export function outputFromBuildOptions(options: any, variationFolder?: string): string {
   if (!options?.buildPath) return '';
   const buildPath = String(options.buildPath).startsWith('project://')
@@ -460,6 +469,13 @@ function initializeFromBaseTask(
   return settings;
 }
 
+function initializeGameNameFromProject(settings: PackerSettings): PackerSettings {
+  if (settings.buildDefaults.name.trim()) return settings;
+  const name = projectPackageName(projectPath());
+  if (name) settings.buildDefaults.name = name;
+  return settings;
+}
+
 function queueSnapshot(): BuildQueueState {
   return JSON.parse(JSON.stringify(queue));
 }
@@ -709,6 +725,7 @@ export const methods = {
       queryBuilderCommonOptions(),
     ]);
     settings = initializeFromBaseTask(settings, tasks);
+    settings = initializeGameNameFromProject(settings);
     if (!settings.buildDefaults.engineModulesConfigKey) {
       const base = selectBuilderTask(tasks, settings.buildDefaults.baseTaskId);
       const baseKey = base ? settingsFromBuilderTask(base).engineModulesConfigKey : '';

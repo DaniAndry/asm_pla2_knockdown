@@ -67,9 +67,9 @@ export const template = `
         <h2>Build configuration</h2>
         <div class="fields">
           <label class="field field-wide"><span>Base native task</span><select class="base-task"></select></label>
-          <label class="field"><span>Game name</span><input class="game-name" type="text"></label>
-          <label class="field"><span>Build path</span><input class="build-path" type="text"></label>
-          <label class="field"><span>Output name</span><input class="output-name" type="text"></label>
+          <label class="field"><span>Game name <b class="required" title="Required">*</b></span><input class="game-name" type="text"></label>
+          <label class="field"><span>Build path <b class="required" title="Required">*</b></span><input class="build-path" type="text"></label>
+          <label class="field"><span>Output name <b class="required" title="Required">*</b></span><input class="output-name" type="text"></label>
           <label class="field"><span>Orientation</span>
             <select class="orientation">
               <option value="auto">Auto</option>
@@ -77,7 +77,7 @@ export const template = `
               <option value="landscape">Landscape</option>
             </select>
           </label>
-          <label class="field"><span>Feature Cropping</span><select class="engine-config"></select></label>
+          <label class="field"><span>Feature Cropping <b class="required" title="Required">*</b></span><select class="engine-config"></select></label>
           <label class="field"><span>Bundle Mode of Native Code</span>
             <select class="native-mode">
               <option value="asmjs">Asmjs</option>
@@ -110,10 +110,10 @@ export const template = `
           </details>
           <span class="estimate-date hint"></span>
         </div>
-        <label class="field field-wide"><span>Variation name</span><input class="variant-name" type="text"></label>
-        <div class="subheading">Scenes</div>
+        <label class="field field-wide"><span>Variation name <b class="required" title="Required">*</b></span><input class="variant-name" type="text"></label>
+        <div class="subheading">Scenes <b class="required" title="Required">*</b></div>
         <div class="scenes"></div>
-        <label class="field field-wide"><span>Start Scene</span><select class="start-scene"></select></label>
+        <label class="field field-wide"><span>Start Scene <b class="required" title="Required">*</b></span><select class="start-scene"></select></label>
 
         <div class="subheading splash-heading">Splash Screen</div>
         <label class="field field-wide"><span>Mode</span>
@@ -150,14 +150,6 @@ export const template = `
             </div>
           </div>
         </div>
-        <details class="snapchat-advanced">
-          <summary>Snapchat advanced</summary>
-          <div class="details-body snapchat-fields">
-            <label class="field field-wide"><span>CDN folder</span><input class="snapchat-folder" type="text" maxlength="96"></label>
-            <label class="field field-wide"><span>config.json</span><textarea class="snapchat-config" rows="7" spellcheck="false"></textarea></label>
-            <p class="hint">Ads API ZIP is self-contained. CDN ZIP references this folder under the fixed Snapchat CDN prefix.</p>
-          </div>
-        </details>
       </section>
 
       <details open>
@@ -185,6 +177,14 @@ export const template = `
             <div><button class="small select-all">Select all</button><button class="small clear-all">Clear all</button></div>
           </div>
           <div class="networks"></div>
+          <details class="snapchat-advanced">
+            <summary>Snapchat advanced</summary>
+            <div class="details-body snapchat-fields">
+              <label class="field field-wide"><span>CDN folder <b class="required" title="Required">*</b></span><input class="snapchat-folder" type="text" maxlength="96"></label>
+              <label class="field field-wide"><span>config.json <b class="required" title="Required">*</b></span><textarea class="snapchat-config" rows="4" spellcheck="false"></textarea></label>
+              <p class="hint">Used only when Snapchat is enabled. Ads API ZIP is self-contained; CDN ZIP uses this folder.</p>
+            </div>
+          </details>
         </div>
       </details>
     </div>
@@ -240,13 +240,16 @@ details summary { padding:10px 12px; cursor:pointer; font-weight:600; font-size:
 .details-body { padding:0 12px 12px; }
 .fields,.splash-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; }
 .field { display:flex; min-width:0; flex-direction:column; gap:4px; font-size:11px; }
+.required { color:var(--color-danger-contrast); font-weight:700; }
 .field-wide { grid-column:1/-1; width:100%; }
 input[type="text"],input[type="number"],select { width:100%; min-height:27px; border:1px solid var(--color-normal-border); border-radius:3px; padding:3px 7px; color:var(--color-normal-contrast); background:var(--color-normal-fill); }
 input[type="color"] { width:100%; min-height:27px; border:1px solid var(--color-normal-border); padding:1px; background:var(--color-normal-fill); }
 textarea { width:100%; resize:vertical; border:1px solid var(--color-normal-border); border-radius:3px; padding:6px 7px; color:var(--color-normal-contrast); background:var(--color-normal-fill); font-family:var(--font-monospace); font-size:11px; }
 .subheading { margin-top:3px; font-size:11px; font-weight:600; opacity:.85; }
-.splash-heading { padding-top:8px; border-top:1px solid var(--color-normal-border); }
-.snapchat-advanced { margin-top:4px; }
+.splash-heading { margin-top:10px; padding:9px 10px; border:1px solid var(--color-focus-border); border-radius:4px; color:var(--color-focus-contrast); background:var(--color-focus-fill); font-size:13px; letter-spacing:.01em; }
+.snapchat-advanced { margin-top:10px; }
+.snapchat-advanced summary { padding:7px 9px; font-size:11px; font-weight:500; }
+.snapchat-advanced .details-body { padding:0 9px 9px; }
 .snapchat-fields { display:flex; flex-direction:column; gap:8px; }
 .scenes { display:grid; grid-template-columns:1fr 1fr; gap:4px 12px; max-height:124px; overflow:auto; padding:7px; border:1px solid var(--color-normal-border); border-radius:3px; }
 .scene,.inline-settings label,.network { display:flex; align-items:center; gap:6px; min-height:23px; }

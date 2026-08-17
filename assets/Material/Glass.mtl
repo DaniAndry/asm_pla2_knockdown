@@ -107,7 +107,7 @@
         "a": 255
       },
       "mainTexture": {
-        "__uuid__": "75755f89-c12e-42de-aeb5-d6345fd96b4f@6c48a",
+        "__uuid__": "d637e35d-b8b7-4eb1-b303-4823f12795a7@6c48a",
         "__expectedType__": "cc.Texture2D"
       }
     },

@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Sprite, isValid, input, Input, EventTouch, Animation } from 'cc';
+import { _decorator, Component, Node, Sprite, isValid } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('LevelUIController')
@@ -15,30 +15,22 @@ export class LevelUIController extends Component {
     @property({ type: [Node], tooltip: 'Ноды уровней с LevelManager для подписки на события' })
     levelNodes: Node[] = [];
 
-    @property({ type: Node, tooltip: 'Нода с туториалом (скрывается при первом клике)' })
+    @property({ type: Node, tooltip: 'Нода с туториалом' })
     tutorialNode: Node = null;
-
-    private tutorialHidden: boolean = false;
 
     onLoad() {
         this.hideAllSprites();
 
-
         if (isValid(this.tutorialNode)) {
             this.tutorialNode.active = true;
         }
-
 
         for (const levelNode of this.levelNodes) {
             if (isValid(levelNode)) {
                 levelNode.on('level-completed', this.onLevelCompleted, this);
             }
         }
-
-
-        input.on(Input.EventType.TOUCH_START, this.onFirstClick, this);
     }
-
 
     private hideAllSprites() {
         if (this.level1Sprite?.node) this.level1Sprite.node.active = false;
@@ -46,24 +38,10 @@ export class LevelUIController extends Component {
         if (this.level3Sprite?.node) this.level3Sprite.node.active = false;
     }
 
-
-    private onFirstClick(event: EventTouch) {
-        if (!this.tutorialHidden && isValid(this.tutorialNode)) {
-            this.tutorialNode.active = false;
-            this.tutorialHidden = true;
-
-
-            input.off(Input.EventType.TOUCH_START, this.onFirstClick, this);
-        }
-    }
-
-
     private onLevelCompleted(eventData: any) {
         const { levelNumber } = eventData;
-
         this.showLevelSprite(levelNumber);
     }
-
 
     private showLevelSprite(levelNumber: number) {
         let sprite: Sprite = null;
@@ -85,29 +63,18 @@ export class LevelUIController extends Component {
         }
     }
 
-
     resetAllLevels() {
         this.hideAllSprites();
-
-
-        this.tutorialHidden = false;
         if (isValid(this.tutorialNode)) {
-                this.tutorialNode.active = true;
+            this.tutorialNode.active = true;
         }
-
-
-        input.off(Input.EventType.TOUCH_START, this.onFirstClick, this);
-        input.on(Input.EventType.TOUCH_START, this.onFirstClick, this);
     }
 
     onDestroy() {
-
         for (const levelNode of this.levelNodes) {
             if (isValid(levelNode)) {
                 levelNode.off('level-completed', this.onLevelCompleted, this);
             }
         }
-
-        input.off(Input.EventType.TOUCH_START, this.onFirstClick, this);
     }
 }

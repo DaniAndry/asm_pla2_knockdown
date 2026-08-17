@@ -21,8 +21,17 @@ export class LevelManager extends Component {
     @property({ type: Camera, tooltip: 'Камера для Billboard / score popup' })
     mainCamera: Camera = null;
 
-    @property({ tooltip: 'Задержка перед поражением, когда кончились снаряды (сек)' })
+    @property({ tooltip: 'Минимальная пауза после последнего выстрела, пока снаряд может ещё лететь (сек). Поражение раньше не показывается.' })
     outOfAmmoDelay: number = 2;
+
+    @property({ tooltip: 'Скорость (м/с): быстрее — объект ещё падает/едет, экран поражения ждёт' })
+    outOfAmmoSettleSpeed: number = 0.4;
+
+    @property({ tooltip: 'Сколько секунд все оставшиеся объекты должны стоять неподвижно перед поражением' })
+    outOfAmmoSettleHold: number = 0.45;
+
+    @property({ tooltip: 'Максимум дополнительного ожидания остановки после Out Of Ammo Delay (сек). Защита от вечного дрожания.' })
+    outOfAmmoSettleTimeout: number = 6;
 
     @property({ tooltip: 'Задержка перед победой после зачистки (сек)' })
     clearLevelDelay: number = 0.8;
@@ -51,6 +60,22 @@ export class LevelManager extends Component {
     @property({ type: CCFloat, tooltip: 'Длительность одного шага при прогреве (сек). Обычно совпадает с fixedTimeStep в PhysicsBootstrap' })
     warmupStepDt: number = 1 / 60;
 
+    @property({ type: Node, tooltip: 'Нода, которую крутить вокруг оси Y' })
+    rotateNode: Node = null;
+
+    @property({ type: Node, tooltip: 'Вторая нода, которую крутить вокруг оси Y' })
+    rotateNode2: Node = null;
+
+    @property({ tooltip: 'Включить вращение rotateNode / rotateNode2 вокруг оси Y' })
+    enableYRotation: boolean = false;
+
+    @property({
+        type: CCFloat,
+        tooltip: 'Скорость вращения вокруг Y, градусов в секунду',
+        visible: function (this: LevelManager) { return this.enableYRotation; }
+    })
+    yRotationSpeed: number = 30;
+
     private destructibleObjects: UniversalCollisionHandler[] = [];
     private hiddenRenderObjects: UniversalCollisionHandler[] = [];
     private currentProjectileCount: number = 0;
@@ -58,6 +83,9 @@ export class LevelManager extends Component {
     private isLevelStarted: boolean = false;
     private subscribedToScene: boolean = false;
     private lastClearedAll: boolean = false;
+    private outOfAmmoElapsed: number = 0;
+    private outOfAmmoStillElapsed: number = 0;
+    private readonly SETTLE_POLL_INTERVAL: number = 0.12;
 
     onLoad() {
         this.collectDestructibles();
@@ -68,18 +96,45 @@ export class LevelManager extends Component {
         this.applySharedRefsToHandlers();
     }
 
+    update(dt: number) {
+        if (!this.enableYRotation) return;
+        this.rotateNodeAroundY(this.rotateNode, dt);
+        this.rotateNodeAroundY(this.rotateNode2, dt);
+    }
+
+    private rotateNodeAroundY(node: Node, dt: number) {
+        if (!isValid(node)) return;
+        const e = node.eulerAngles;
+        node.setRotationFromEuler(e.x, e.y + this.yRotationSpeed * dt, e.z);
+    }
+
+    public resetRotationYaw() {
+        if (!this.enableYRotation) return;
+        this.setNodeYaw(this.rotateNode, 0);
+        this.setNodeYaw(this.rotateNode2, 0);
+    }
+
+    private setNodeYaw(node: Node, yaw: number) {
+        if (!isValid(node)) return;
+        const e = node.eulerAngles;
+        node.setRotationFromEuler(e.x, yaw, e.z);
+    }
+
     private collectDestructibles() {
         this.unsubscribeFromDestructibles();
         this.destructibleObjects = [];
-
-        const parent = isValid(this.destructiblesParent) ? this.destructiblesParent : this.node;
-        const handlers = parent.getComponentsInChildren(UniversalCollisionHandler);
-
-        for (const handler of handlers) {
-            if (isValid(handler)) {
+        const seen = new Set<UniversalCollisionHandler>();
+        const addFrom = (root: Node | null) => {
+            if (!isValid(root)) return;
+            const handlers = root.getComponentsInChildren(UniversalCollisionHandler);
+            for (const handler of handlers) {
+                if (!isValid(handler) || seen.has(handler)) continue;
+                seen.add(handler);
                 this.destructibleObjects.push(handler);
             }
-        }
+        };
+        addFrom(this.destructiblesParent);
+        addFrom(this.node);
 
         this.subscribeToDestructibles();
         this.applySharedRefsToHandlers();
@@ -131,11 +186,16 @@ export class LevelManager extends Component {
         this.unschedule(this.checkLevelCompletionLate);
         this.unschedule(this.pollLevelProgress);
         this.unschedule(this.revealMovingHiddenObjects);
+        this.unschedule(this.pollOutOfAmmoSettle);
+
+        this.resetRotationYaw();
 
         this.isLevelStarted = true;
         this.isLevelComplete = false;
         this.currentProjectileCount = 0;
         this.lastClearedAll = false;
+        this.outOfAmmoElapsed = 0;
+        this.outOfAmmoStillElapsed = 0;
 
         if (this.enablePhysicsWarmup) {
             this.fastForwardSettle();
@@ -165,14 +225,6 @@ export class LevelManager extends Component {
         }
     }
 
-    // Прогоняет физику вперёд на warmupSteps шагов ОДНИМ синхронным блоком —
-    // пирамида "усядется" ещё до первого отрисованного кадра игроком, вместо
-    // видимого джиттера первую секунду. Даёт короткий синхронный хитч при
-    // загрузке уровня (пропорционален числу шагов и тяжести сцены), но не
-    // меняет ничьё поведение/тип объектов — это то же самое честное
-    // усаживание, просто сжатое во времени. autoSimulation временно
-    // выключается на время прогрева и восстанавливается, чтобы не задвоить
-    // шаг с PhysicsBootstrap.update().
     private fastForwardSettle() {
         const ps = PhysicsSystem.instance;
         if (!ps || typeof (ps as any).simulate !== 'function') return;
@@ -253,8 +305,7 @@ export class LevelManager extends Component {
         });
 
         if (this.currentProjectileCount >= this.maxProjectiles) {
-            this.unschedule(this.checkLevelCompletion);
-            this.scheduleOnce(this.checkLevelCompletion, this.outOfAmmoDelay);
+            this.startOutOfAmmoSettleWatch();
         }
     }
 
@@ -332,17 +383,60 @@ export class LevelManager extends Component {
         this.cullOutOfBoundsDestructibles();
 
         const remaining = this.getRemainingObjectsCount();
-        const outOfAmmo = this.currentProjectileCount >= this.maxProjectiles;
-
         if (remaining === 0) {
+            this.completeLevel(true);
+        }
+    };
+
+    private startOutOfAmmoSettleWatch() {
+        this.outOfAmmoElapsed = 0;
+        this.outOfAmmoStillElapsed = 0;
+        this.unschedule(this.pollOutOfAmmoSettle);
+        this.schedule(this.pollOutOfAmmoSettle, this.SETTLE_POLL_INTERVAL);
+    }
+
+    private pollOutOfAmmoSettle = () => {
+        if (!this.isLevelActive()) return;
+
+        this.cullOutOfBoundsDestructibles();
+
+        if (this.getRemainingObjectsCount() === 0) {
             this.completeLevel(true);
             return;
         }
 
-        if (outOfAmmo) {
+        const dt = this.SETTLE_POLL_INTERVAL;
+        this.outOfAmmoElapsed += dt;
+
+        if (this.hasUnsettledDestructibles()) {
+            this.outOfAmmoStillElapsed = 0;
+            if (this.outOfAmmoElapsed >= this.outOfAmmoDelay + this.outOfAmmoSettleTimeout) {
+                this.completeLevel(false);
+            }
+            return;
+        }
+
+        if (this.outOfAmmoElapsed < this.outOfAmmoDelay) {
+            this.outOfAmmoStillElapsed = 0;
+            return;
+        }
+
+        this.outOfAmmoStillElapsed += dt;
+        if (this.outOfAmmoStillElapsed >= this.outOfAmmoSettleHold) {
             this.completeLevel(false);
         }
     };
+
+    private hasUnsettledDestructibles(): boolean {
+        const speedSqr = this.outOfAmmoSettleSpeed * this.outOfAmmoSettleSpeed;
+        for (const obj of this.destructibleObjects) {
+            if (!isValid(obj) || obj.isDestroyed) continue;
+            if (!isValid(obj.node) || !obj.node.activeInHierarchy) continue;
+            if (obj.isAwaitingDestroy()) return true;
+            if (obj.isMovingBeyond(speedSqr)) return true;
+        }
+        return false;
+    }
 
     private checkLevelCompletionLate = () => {
         this.checkLevelCompletion();
@@ -356,6 +450,7 @@ export class LevelManager extends Component {
         this.unschedule(this.checkLevelCompletion);
         this.unschedule(this.checkLevelCompletionLate);
         this.unschedule(this.pollLevelProgress);
+        this.unschedule(this.pollOutOfAmmoSettle);
         this.unschedule(this.emitLevelResult);
 
         this.node.emit('level-completed', {

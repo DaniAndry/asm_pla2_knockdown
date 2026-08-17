@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createEstimateBuilderOptions = exports.createBuilderOptions = exports.buildTaskConfigurationEqual = exports.buildTaskSettingsEqual = exports.selectBuilderTask = exports.webMobileTasks = exports.summarizeBuilderTask = exports.settingsFromBuilderTask = exports.cloneBuilderOptions = exports.EXTENSION_VERSION = void 0;
 const constants_1 = require("./constants");
 const settings_1 = require("./settings");
-exports.EXTENSION_VERSION = '1.8.0';
+exports.EXTENSION_VERSION = '1.8.1';
 function cloneBuilderOptions(options) {
     const clone = JSON.parse(JSON.stringify(options || {}));
     delete clone.logDest;

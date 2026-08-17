@@ -2,9 +2,11 @@ import {
     _decorator,
     Component,
     Collider,
+    BoxCollider,
     RigidBody,
     ICollisionEvent,
     isValid,
+    Vec3,
 } from 'cc';
 import { UniversalCollisionHandler } from './UniversalCollisionHandler';
 import { findComponentInParents } from './NodeUtils';
@@ -39,6 +41,27 @@ export class FloorCollisionDestroyer extends Component {
             rb.setGroup(UniversalCollisionHandler.GROUP_FLOOR);
             rb.setMask(UniversalCollisionHandler.GROUP_DEFAULT | UniversalCollisionHandler.GROUP_SHATTER);
         }
+
+        UniversalCollisionHandler.setShatterFloorNode(this.node);
+    }
+
+    start() {
+        UniversalCollisionHandler.setShatterFloorNode(this.node);
+    }
+
+    private readFloorTopY(): number {
+        const box = this.getComponent(BoxCollider);
+        if (box) {
+            const local = new Vec3(
+                box.center.x,
+                box.center.y + box.size.y * 0.5,
+                box.center.z,
+            );
+            const world = new Vec3();
+            Vec3.transformMat4(world, local, this.node.worldMatrix);
+            return world.y;
+        }
+        return this.node.worldPosition.y;
     }
 
     onDestroy() {

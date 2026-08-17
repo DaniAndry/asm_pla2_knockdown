@@ -25,17 +25,17 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 96
-      },
-      {
         "__id__": 98
       },
       {
         "__id__": 100
+      },
+      {
+        "__id__": 102
       }
     ],
     "_prefab": {
-      "__id__": 102
+      "__id__": 104
     },
     "_lpos": {
       "__type__": "cc.Vec3",
@@ -182,6 +182,9 @@
       },
       {
         "__id__": 95
+      },
+      {
+        "__id__": 96
       }
     ],
     "removedComponents": []
@@ -1192,7 +1195,7 @@
         "__expectedType__": "cc.Material"
       },
       {
-        "__uuid__": "8495b66f-2a5b-4f5c-871f-f9bec9294ab8",
+        "__uuid__": "66788fa1-9179-4128-8ad5-979a413cb9af",
         "__expectedType__": "cc.Material"
       }
     ],
@@ -1639,7 +1642,7 @@
       "1"
     ],
     "value": {
-      "__uuid__": "8495b66f-2a5b-4f5c-871f-f9bec9294ab8",
+      "__uuid__": "66788fa1-9179-4128-8ad5-979a413cb9af",
       "__expectedType__": "cc.Material"
     }
   },
@@ -1741,6 +1744,22 @@
     "value": 1
   },
   {
+    "__type__": "CCPropertyOverrideInfo",
+    "targetInfo": {
+      "__id__": 97
+    },
+    "propertyPath": [
+      "_active"
+    ],
+    "value": true
+  },
+  {
+    "__type__": "cc.TargetInfo",
+    "localID": [
+      "fdqzmXRTVWJrsUCNK/VGyc"
+    ]
+  },
+  {
     "__type__": "cc.BoxCollider",
     "_name": "",
     "_objFlags": 0,
@@ -1750,7 +1769,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 97
+      "__id__": 99
     },
     "_material": null,
     "_isTrigger": false,
@@ -1782,7 +1801,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 99
+      "__id__": 101
     },
     "_group": 1,
     "_type": 1,
@@ -1819,7 +1838,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 101
+      "__id__": 103
     },
     "useHealthSystem": true,
     "floorDestroyDelayMin": 0.3,
@@ -1833,7 +1852,6 @@
     "hitSoundName": "hitGlass",
     "destructionSoundName": "",
     "hitSoundCooldown": 0.12,
-    "wakeRadius": 5,
     "projectileTag": "Projectile",
     "projectileGroup": 0,
     "animDurationMinFactor": 0.15,
@@ -1842,10 +1860,13 @@
     "fadeDestroyDuration": 0.2,
     "liteDestroyLifeDuration": 0.22,
     "useMaterialFade": false,
-    "shatterIntoMeshPieces": false,
+    "shatterIntoMeshPieces": true,
     "shatterImpulse": 2.2,
     "shatterTorque": 4,
-    "shatterPieceMass": 0.35,
+    "shatterGravity": -14,
+    "shatterGroundFriction": 0.25,
+    "shatterAirDrag": 0.02,
+    "shatterBounce": 0.22,
     "shatterLifeDuration": 1.1,
     "shatterFadeDuration": 0.35,
     "_id": ""

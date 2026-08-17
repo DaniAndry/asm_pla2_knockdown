@@ -8,7 +8,7 @@ import {
   PackerSettings,
 } from './types';
 
-export const EXTENSION_VERSION = '1.8.0';
+export const EXTENSION_VERSION = '1.8.1';
 
 export function cloneBuilderOptions(options: any): any {
   const clone = JSON.parse(JSON.stringify(options || {}));

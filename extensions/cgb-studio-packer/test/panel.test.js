@@ -162,6 +162,10 @@ test('panel renders variations, size estimate, current options, networks and act
     assert.equal(document.querySelector('.copy-error').textContent, 'Copied');
 
     assert.equal(document.querySelectorAll('.variant-item').length, 1);
+    assert.ok(document.querySelectorAll('.required').length >= 8);
+    assert.ok(document.querySelector('.networks').compareDocumentPosition(
+      document.querySelector('.snapchat-advanced'),
+    ) & dom.window.Node.DOCUMENT_POSITION_FOLLOWING);
     assert.match(document.querySelector('.ads-manager-path').textContent, /Not installed/);
     document.querySelector('.install-ads-manager').click();
     await waitForMessage(messages, 'cgb-studio-packer:install-ads-manager');

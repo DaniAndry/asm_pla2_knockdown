@@ -41,6 +41,14 @@ test('project build URLs resolve to the real CGB output directory', () => {
   }
 });
 
+test('project package name is read safely for an empty Game name default', () => {
+  const projectDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'cgb-main-package-name-'));
+  fs.writeFileSync(path.join(projectDirectory, 'package.json'), JSON.stringify({ name: 'ants-playable' }));
+  const { projectPackageName } = require('../dist/main');
+  assert.equal(projectPackageName(projectDirectory), 'ants-playable');
+  assert.equal(projectPackageName(path.join(projectDirectory, 'missing')), '');
+});
+
 test('Cocos Builder success code 36 is accepted and failure code 34 is rejected', () => {
   const { assertBuilderSuccess } = require('../dist/main');
   assert.doesNotThrow(() => assertBuilderSuccess(36));
