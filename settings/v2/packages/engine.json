@@ -69,12 +69,6 @@
           "physics-cannon": {
             "_value": false
           },
-          "physics-box3d": {
-            "_value": true,
-            "_flags": {
-              "LOAD_BOX3D_MANUALLY": false
-            }
-          },
           "physics-physx": {
             "_value": false,
             "_flags": {
@@ -83,9 +77,6 @@
           },
           "physics-builtin": {
             "_value": false
-          },
-          "physics-box3d-extras": {
-            "_value": true
           },
           "physics-2d": {
             "_value": false,
@@ -197,6 +188,15 @@
           },
           "xr": {
             "_value": false
+          },
+          "physics-box3d": {
+            "_value": true,
+            "_flags": {
+              "LOAD_BOX3D_MANUALLY": false
+            }
+          },
+          "physics-box3d-extras": {
+            "_value": true
           }
         },
         "flags": {
@@ -218,7 +218,6 @@
           "occlusion-query",
           "particle",
           "physics-box3d",
-          "physics-box3d-extras",
           "primitive",
           "profiler",
           "skeletal-animation",

@@ -92,12 +92,12 @@
       },
       "albedoScale": {
         "__type__": "cc.Vec3",
-        "x": 1.4,
-        "y": 1.2,
-        "z": 1.2
+        "x": 1.2,
+        "y": 1,
+        "z": 1
       },
       "roughness": 0.711,
-      "metallic": 0.325,
+      "metallic": 0.663,
       "mainTexture": {
         "__uuid__": "4d51a61f-b775-41d1-aa3a-d78ccdff4779@6c48a",
         "__expectedType__": "cc.Texture2D"
